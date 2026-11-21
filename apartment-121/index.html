@@ -1,0 +1,973 @@
+<title>Квартира 121</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Layout: drafting-table tool — plan sheet on the left, specification panel on the right; tabs switch between plan, 3D and schedules. */
+:root{
+  --bg:#F4F0E9; --surface:#FFFDF9; --ink:#2A2520; --muted:#776C61; --line:#E2D8CA;
+  --accent:#9E5230; --accent-ink:#FFFFFF; --olive:#6E7444;
+  --wall:#2F2A25; --wall-int:#7C7065; --floor:#EEDDC3; --floor-line:#E0CAA8; --tile:#E8E3DB; --tile-line:#D1C8BB;
+  --heat:#C8653F; --sel:#2F6FDB; --bad:#D23B2E; --dim:#4F6884; --win:#CFE3EE; --plan-bg:#FBF8F3; --v3bg:#EFE9E0;
+  --font:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --display:'Unbounded','Onest',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#191714; --surface:#221F1B; --ink:#EEE6DA; --muted:#A99D8F; --line:#37312A;
+  --accent:#D98A62; --accent-ink:#1B1714; --olive:#A4AA78;
+  --wall:#E6DCCD; --wall-int:#9C9084; --floor:#3A3027; --floor-line:#463A2E; --tile:#33302B; --tile-line:#423C35;
+  --heat:#E08A62; --sel:#79A6FF; --bad:#FF6B5E; --dim:#9FB4CC; --win:#2E4652; --plan-bg:#1F1C18; --v3bg:#24211D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#191714; --surface:#221F1B; --ink:#EEE6DA; --muted:#A99D8F; --line:#37312A;
+  --accent:#D98A62; --accent-ink:#1B1714; --olive:#A4AA78;
+  --wall:#E6DCCD; --wall-int:#9C9084; --floor:#3A3027; --floor-line:#463A2E; --tile:#33302B; --tile-line:#423C35;
+  --heat:#E08A62; --sel:#79A6FF; --bad:#FF6B5E; --dim:#9FB4CC; --win:#2E4652; --plan-bg:#1F1C18; --v3bg:#24211D; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(20px,3vw,28px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0}
+.facts{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:500}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+nav.tabs button{font:inherit;font-weight:500;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 12px;cursor:pointer;margin-bottom:-1px}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}}
+.sheet{background:var(--plan-bg);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0}
+.sheet-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--surface)}
+.sheet-bar .sp{flex:1}
+.plan-scroll{overflow:auto;max-height:78vh;touch-action:pan-x pan-y}
+#plan{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none}
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h3{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn{font:inherit;font-size:13px;font-weight:500;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:6px 10px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.form label{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--muted);min-width:0}
+.form label.w2{grid-column:span 2}.form label.w3{grid-column:span 3}
+input,select,textarea{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px;width:100%;min-width:0}
+input[type=number]{font-family:var(--mono);font-variant-numeric:tabular-nums}
+textarea{font-family:var(--mono);font-size:11.5px;min-height:110px}
+.muted{color:var(--muted)}.small{font-size:12px}
+.note{font-size:12.5px;color:var(--muted);line-height:1.45}
+.warn{font-size:12.5px;color:var(--bad)}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;font-size:12px}
+.legend span{display:flex;align-items:center;gap:6px;min-width:0}
+.dot{width:16px;height:16px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font:600 9px/1 var(--font);flex:none}
+.v3wrap{position:relative;height:min(74vh,760px);min-height:380px;background:var(--v3bg)}
+#v3{position:absolute;inset:0}
+#v3 canvas{display:block;width:100%;height:100%;touch-action:none}
+#v3-status{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);pointer-events:none}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto}
+.room-h{font-family:var(--display);font-weight:500;font-size:15px;margin:18px 0 6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-family:var(--mono);font-size:20px;font-weight:500}
+.stat span{font-size:12px;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.sw div{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.sw i{display:block;height:64px}
+.sw p{margin:0;padding:7px 9px;font-size:12px;line-height:1.35}
+.sw p b{display:block;font-size:12.5px}
+.prose{max-width:72ch}
+.prose h4{margin:14px 0 4px;font-size:14px}
+.prose p,.prose li{color:var(--ink)}
+.prose ul{padding-left:18px;margin:4px 0}
+.confirm{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+svg text{font-family:var(--font)}
+.t-room{font-size:15px;font-weight:700;fill:var(--ink);paint-order:stroke;stroke:var(--plan-bg);stroke-width:4px;stroke-linejoin:round}
+.t-sub{font-size:11px;fill:var(--muted);font-family:var(--mono);paint-order:stroke;stroke:var(--plan-bg);stroke-width:3px}
+.t-dim{font-size:12px;fill:var(--dim);font-family:var(--mono)}
+.t-dist{font-size:11px;fill:var(--sel);font-family:var(--mono);font-weight:500;paint-order:stroke;stroke:var(--plan-bg);stroke-width:3px}
+.t-ann{font-size:11px;fill:var(--muted)}
+.wall-ext{fill:var(--wall)}.wall-int{fill:var(--wall-int)}
+.dimline{stroke:var(--dim);stroke-width:1}
+.item{cursor:grab;touch-action:none}
+.item:active{cursor:grabbing}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Квартира 121</h1>
+      <p class="sub">Планировка, мебель в реальных размерах, электрика и 3D. Тёплый бежевый, дуб, немного терракоты и оливы.</p>
+    </div>
+    <div class="facts" id="facts"></div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-tab="plan" aria-selected="true">План</button>
+    <button role="tab" data-tab="v3d" aria-selected="false">3D</button>
+    <button role="tab" data-tab="elec" aria-selected="false">Электрика</button>
+    <button role="tab" data-tab="furn" aria-selected="false">Мебель и хранение</button>
+    <button role="tab" data-tab="concept" aria-selected="false">Концепция</button>
+  </nav>
+
+  <!-- PLAN -->
+  <section id="tab-plan" class="grid">
+    <div class="sheet">
+      <div class="sheet-bar">
+        <span class="small muted">Масштаб</span>
+        <button class="btn" id="zoom-out" aria-label="Уменьшить">−</button>
+        <span class="small" id="zoom-val" style="font-family:var(--mono)">100%</span>
+        <button class="btn" id="zoom-in" aria-label="Увеличить">+</button>
+        <span class="sp"></span>
+        <span class="small muted" id="coll-msg"></span>
+      </div>
+      <div class="plan-scroll" id="plan-scroll">
+        <svg id="plan" viewBox="-75 -95 1190 900" xmlns="http://www.w3.org/2000/svg" aria-label="План квартиры"></svg>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <h3>Слои</h3>
+        <div class="chips" id="layers"></div>
+      </div>
+
+      <div class="card" id="editor">
+        <h3>Выбранный предмет</h3>
+        <p class="note">Нажмите на мебель или розетку на плане. Перетаскивайте мышью или пальцем, стрелки двигают на 5 см (с Shift на 1 см), R поворачивает, Delete удаляет. Синие цифры показывают расстояние до стен и мебели.</p>
+      </div>
+
+      <div class="card">
+        <h3>Добавить</h3>
+        <div class="form">
+          <label class="w3">Что
+            <select id="add-what"></select>
+          </label>
+          <label class="w2">Куда
+            <select id="add-room"></select>
+          </label>
+          <label>&nbsp;
+            <button class="btn primary" id="add-btn">Добавить</button>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Проект</h3>
+        <div class="form">
+          <label class="w2">Высота потолка, см
+            <input type="number" id="ceiling" min="240" max="320" step="5">
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn" id="exp-btn">Экспорт</button>
+          <button class="btn" id="imp-btn">Импорт</button>
+          <span id="reset-zone"><button class="btn danger" id="reset-btn">Сбросить к исходному</button></span>
+        </div>
+        <div id="io" hidden class="panel">
+          <textarea id="io-text" aria-label="Данные проекта в JSON"></textarea>
+          <div class="row" id="io-actions"></div>
+          <span class="small muted" id="io-msg"></span>
+        </div>
+        <p class="note">Изменения сохраняются в этом браузере. Чтобы перенести проект на другое устройство, нажмите «Экспорт», скопируйте текст и вставьте его через «Импорт».</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3D -->
+  <section id="tab-v3d" hidden>
+    <div class="sheet">
+      <div class="sheet-bar">
+        <button class="chip" id="cut-walls" aria-pressed="true">Срезать стены до 1,2 м</button>
+        <button class="chip" id="v3-elec" aria-pressed="false">Показать розетки</button>
+        <button class="btn" id="v3-reset">Вид сверху</button>
+        <span class="sp"></span>
+        <span class="small muted">Вращать: тянуть. Приблизить: колесо или щипок. Сдвинуть: правая кнопка или два пальца.</span>
+      </div>
+      <div class="v3wrap"><div id="v3"></div><div id="v3-status">Загружаю 3D…</div></div>
+    </div>
+    <p class="note" style="margin-top:8px">3D-вид собирается из того же плана: передвиньте мебель на вкладке «План», и здесь она окажется на новом месте. Это объёмная схема для пропорций и света, а не фотореалистичный рендер.</p>
+  </section>
+
+  <!-- ELECTRIC -->
+  <section id="tab-elec" hidden></section>
+  <!-- FURNITURE -->
+  <section id="tab-furn" hidden></section>
+  <!-- CONCEPT -->
+  <section id="tab-concept" hidden></section>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+/* ===================== GEOMETRY (cm; x → right, y → down; y=0 is the inner face of the facade) ===================== */
+const ROOMS=[
+  {id:'bed', name:'Спальня', pts:[[0,0],[299,0],[299,542],[0,542]], bti:16.2, dims:'2,99 × 5,42', lx:150, ly:430, heat:false},
+  {id:'liv', name:'Гостиная-кабинет', pts:[[309,0],[607,0],[607,425],[309,425]], bti:12.7, dims:'2,98 × 4,25', lx:520, ly:300, heat:true},
+  {id:'kit', name:'Кухня', pts:[[617,0],[865,0],[865,425],[617,425]], bti:10.5, dims:'2,48 × 4,25', lx:735, ly:290, heat:true},
+  {id:'hall', name:'Прихожая', pts:[[309,435],[865,435],[865,672],[685,672],[685,527],[309,527]], bti:7.5, dims:'', lx:520, ly:470, heat:true},
+  {id:'bath', name:'Санузел', pts:[[875,360],[1050,360],[1050,672],[875,672]], bti:5.4, dims:'1,75 × 3,12', lx:930, ly:560, heat:true, tile:true},
+];
+const WALLS=[
+  {x:-25,y:-30,w:915,h:30,e:1},       // facade
+  {x:-25,y:0,w:25,h:567,e:1},         // bedroom outer
+  {x:-25,y:542,w:334,h:25,e:1},       // bedroom to stairwell
+  {x:299,y:0,w:10,h:542},             // bedroom | living, corridor
+  {x:607,y:0,w:10,h:425},             // living | kitchen
+  {x:309,y:425,w:566,h:10},           // rooms | corridor
+  {x:865,y:0,w:25,h:350,e:1},         // kitchen right
+  {x:865,y:350,w:10,h:85},            // kitchen | bathroom
+  {x:875,y:350,w:200,h:10},           // bathroom top
+  {x:309,y:527,w:376,h:25,e:1},       // corridor to stairwell
+  {x:660,y:527,w:25,h:170,e:1},       // entry niche left
+  {x:660,y:672,w:415,h:25,e:1},       // entry + bathroom bottom
+  {x:865,y:435,w:10,h:237},           // hall | bathroom
+  {x:1050,y:350,w:25,h:347,e:1},      // bathroom right
+];
+const OPENINGS=[
+  {t:'win', x:105,y:-30,w:180,h:30, sill:85, head:235, label:'окно'},
+  {t:'win', x:312,y:-30,w:292,h:30, sill:5, head:255, label:'панорамное окно', pano:1},
+  {t:'win', x:620,y:-30,w:242,h:30, sill:5, head:255, label:'панорамное окно', pano:1},
+  {t:'door', x:299,y:440,w:10,h:80, sill:0, head:210, c:[299,520], p1:[299,440], p2:[219,520]},
+  {t:'door', x:455,y:425,w:80,h:10, sill:0, head:210, c:[455,425], p1:[535,425], p2:[455,345]},
+  {t:'arch', x:695,y:425,w:100,h:10, sill:0, head:225},
+  {t:'door', x:865,y:590,w:10,h:70, sill:0, head:210, c:[865,660], p1:[865,590], p2:[795,660]},
+  {t:'door', x:750,y:672,w:90,h:25, sill:0, head:210, c:[840,697], p1:[750,697], p2:[840,787], entry:1},
+];
+const SHAFTS=[{x:890,y:228,w:32,h:74,label:'вентканал'},{x:1030,y:600,w:20,h:72,label:'стояк'}];
+
+/* ===================== MATERIALS & ELECTRIC KINDS ===================== */
+const MATS={
+  oak:{n:'Дуб натуральный',c:'#C9A173'}, beige:{n:'Бежевый матовый',c:'#E4D5C0'}, paint:{n:'В цвет стен',c:'#EEE6DA'},
+  linen:{n:'Лён / букле',c:'#DCCFBC'}, terracotta:{n:'Терракота',c:'#B8653F'}, olive:{n:'Олива',c:'#7E8350'},
+  white:{n:'Белый',c:'#F3F1ED'}, dark:{n:'Графит',c:'#3A3632'}, stone:{n:'Кварц, светлый',c:'#DDD5C8'},
+  rug:{n:'Шерсть, песочный',c:'#CBB894'}, mirror:{n:'Зеркало',c:'#C5D3D8'}, slats:{n:'Рейки, дуб',c:'#C9A173'},
+};
+const DARKMAT=new Set(['dark','terracotta','olive']);
+const EK={
+  S:{n:'Розетка',c:'#C4563A',k:'Р'}, S2:{n:'Розетка двойная',c:'#C4563A',k:'Р2'}, SU:{n:'Розетка 2× + USB',c:'#C4563A',k:'U'},
+  W:{n:'Розетка IP44 (влагозащ.)',c:'#2C84A3',k:'W'}, P:{n:'Силовой вывод / кабель',c:'#A2741A',k:'С'},
+  SW:{n:'Выключатель',c:'#3E5F8A',k:'В'}, SW2:{n:'Проходной выключатель',c:'#3E5F8A',k:'П'},
+  T:{n:'Терморегулятор тёплого пола',c:'#8C5A9E',k:'Т'}, L:{n:'Вывод под свет',c:'#B48C12',k:'Л'},
+  LAN:{n:'Слаботочка (LAN, ТВ, домофон)',c:'#5F6B7A',k:'И'}, AC:{n:'Кондиционер',c:'#3C8D7A',k:'К'},
+};
+
+/* ===================== DEFAULT PROJECT ===================== */
+let _n=0; const nid=p=>p+(++_n).toString(36)+Math.random().toString(36).slice(2,5);
+const F=(name,room,x,y,w,d,h,mat,o={})=>({id:nid('f'),cat:'f',name,room,x,y,w,d,h,z:0,mat,...o});
+const PN=(name,room,x,y,w,d)=>({id:nid('p'),cat:'p',name,room,x,y,w,d,h:270,z:0,mat:'slats',nc:1});
+const E=(kind,room,x,y,h,label)=>({id:nid('e'),cat:'e',kind,room,x,y,h,label});
+function defaults(){return{
+  ceiling:270,
+  items:[
+    F('Кровать 160×200','bed',0,150,210,160,45,'linen',{kind:'bed',back:'L'}),
+    F('Тумба','bed',0,105,40,45,55,'oak',{store:1}),
+    F('Тумба','bed',0,310,40,45,55,'oak',{store:1}),
+    F('Шкаф 210, фасады в цвет стен','bed',0,482,210,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
+    F('Кресло для чтения','bed',214,14,80,80,80,'olive',{kind:'armchair',back:'T'}),
+    F('Ковёр у кровати 80×200','bed',214,130,80,200,1,'rug',{kind:'rug',nc:1}),
+    F('Диван-кровать 220×100','liv',309,115,100,220,85,'terracotta',{kind:'sofa',back:'L',ext:{dx:0,dy:10,w:210,d:200,label:'разложенный 160×200'}}),
+    F('Шкаф 140','liv',309,365,140,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
+    F('ТВ-тумба 180','liv',567,140,40,180,45,'oak',{back:'R',store:1}),
+    F('ТВ 55″','liv',599,168,6,124,72,'dark',{z:95,kind:'tv',nc:1}),
+    F('Рабочий стол 120×60','liv',547,10,60,120,75,'oak',{kind:'table'}),
+    F('Рабочее кресло','liv',490,45,50,50,90,'dark',{kind:'chair',back:'L'}),
+    F('Полки над столом','liv',582,10,25,120,90,'oak',{z:120,upper:1,store:1}),
+    F('Ковёр 140×200','liv',420,125,140,200,1,'rug',{kind:'rug',nc:1}),
+    F('Ящики','kit',805,20,60,105,90,'beige',{kind:'base',back:'R',store:1}),
+    F('Варочная панель + духовка','kit',805,125,60,60,90,'beige',{kind:'base',sub:'hob',back:'R'}),
+    F('Ящики','kit',805,185,60,60,90,'beige',{kind:'base',back:'R',store:1}),
+    F('Посудомойка 45','kit',805,245,60,45,90,'beige',{kind:'base',back:'R'}),
+    F('Мойка','kit',805,290,60,60,90,'beige',{kind:'base',sub:'sink',back:'R',store:1}),
+    F('Холодильник','kit',805,360,60,62,200,'white',{back:'R'}),
+    F('Верхние шкафы','kit',830,20,35,270,90,'oak',{z:145,upper:1,store:1}),
+    F('Обеденный стол 120×70','kit',617,40,70,120,75,'oak',{kind:'table'}),
+    F('Стул','kit',692,52,45,45,85,'olive',{kind:'chair',back:'R'}),
+    F('Стул','kit',692,113,45,45,85,'olive',{kind:'chair',back:'R'}),
+    F('Стул','kit',630,165,45,45,85,'olive',{kind:'chair',back:'B'}),
+    F('Пенал-кладовая, глубина 40','kit',617,240,40,170,240,'beige',{back:'L',store:1}),
+    F('Шкаф в прихожей','hall',685,532,60,140,260,'oak',{kind:'wardrobe',back:'L',store:1}),
+    F('Комод-обувница, глубина 30','hall',400,497,260,30,95,'oak',{back:'B',store:1}),
+    F('Зеркало в пол','hall',862,455,3,90,190,'mirror',{nc:1}),
+    F('Ванна 170×75','bath',877,360,170,75,58,'white',{kind:'tub'}),
+    F('Тумба с раковиной 80','bath',875,460,46,80,85,'oak',{kind:'base',sub:'sink',back:'L',store:1}),
+    F('Зеркальный шкаф','bath',875,460,14,80,70,'mirror',{z:115,upper:1,store:1}),
+    F('Стиральная машина','bath',990,445,60,60,85,'white',{back:'R'}),
+    F('Шкаф с бойлером 50 л','bath',1005,440,45,65,90,'oak',{z:140,upper:1,store:1}),
+    F('Короб инсталляции','bath',1025,560,25,112,120,'beige',{back:'R'}),
+    F('Унитаз подвесной','bath',970,592,55,36,40,'white',{kind:'wc',back:'R'}),
+    F('Полотенцесушитель','bath',875,550,6,40,80,'dark',{z:55,nc:1}),
+    PN('Рейки за изголовьем','bed',0,60,4,340),
+    PN('Рейки за ТВ','liv',603,115,4,230),
+    PN('Панель у стола','kit',617,20,4,190),
+    PN('Рейки вокруг зеркала','hall',861,440,4,145),
+  ],
+  elec:[
+    E('SW','hall',863,582,90,'Блок у входа: свет прихожей, свет и вентилятор санузла'),
+    E('T','hall',863,566,90,'Терморегулятор тёплого пола санузла'),
+    E('S','hall',688,655,30,'В шкафу: пылесос, сушилка для обуви'),
+    E('LAN','hall',688,548,200,'Слаботочный щиток и роутер (верх шкафа)'),
+    E('S','hall',380,525,30,'Розетка в коридоре (пылесос)'),
+    E('SW2','hall',548,437,90,'Проходной выключатель коридора'),
+    E('SW2','hall',803,437,90,'Проходной выключатель коридора'),
+    E('LAN','hall',848,670,150,'Домофон'),
+    E('SW','bed',297,428,90,'Выключатель у двери: общий свет'),
+    E('SW2','bed',2,98,70,'Проходной выключатель у кровати'),
+    E('SU','bed',2,118,70,'Розетка 2× + USB у тумбы'),
+    E('L','bed',2,138,150,'Вывод под бра'),
+    E('L','bed',2,314,150,'Вывод под бра'),
+    E('SU','bed',2,334,70,'Розетка 2× + USB у тумбы'),
+    E('SW2','bed',2,354,70,'Проходной выключатель у кровати'),
+    E('S','bed',297,105,30,'Розетка у кресла (торшер)'),
+    E('AC','bed',297,250,230,'Кондиционер: питание и трасса'),
+    E('L','bed',100,480,240,'Подсветка шкафа (по желанию)'),
+    E('SW','liv',547,423,90,'Выключатель: общий свет и подсветка'),
+    E('T','liv',563,423,90,'Терморегулятор тёплого пола'),
+    E('S2','liv',605,28,85,'Розетки над столом'),
+    E('LAN','liv',605,62,85,'Интернет у стола'),
+    E('S2','liv',605,100,85,'Розетки над столом'),
+    E('S2','liv',605,205,110,'Розетки за телевизором'),
+    E('LAN','liv',605,232,110,'LAN и ТВ-антенна за телевизором'),
+    E('S2','liv',605,290,30,'Розетки в ТВ-тумбе'),
+    E('SU','liv',311,105,30,'Розетка у дивана'),
+    E('SU','liv',311,345,30,'Розетка у дивана'),
+    E('AC','liv',380,423,230,'Кондиционер над шкафом'),
+    E('P','liv',597,2,255,'Вывод под электрокарниз (по желанию)'),
+    E('SW','kit',688,423,90,'Выключатель: общий свет и подвес над столом'),
+    E('T','kit',671,423,90,'Терморегулятор тёплого пола'),
+    E('S2','kit',863,58,110,'Розетки над столешницей'),
+    E('S','kit',863,98,30,'Духовой шкаф: отдельная линия 16 А'),
+    E('S','kit',863,140,220,'Вытяжка'),
+    E('P','kit',863,160,20,'Варочная панель: кабель 3×6 мм², автомат 32 А'),
+    E('S2','kit',863,215,110,'Розетки над столешницей'),
+    E('L','kit',863,240,140,'Подсветка столешницы (блок питания в верхнем шкафу)'),
+    E('S','kit',863,305,30,'Посудомойка (розетка в модуле мойки)'),
+    E('S','kit',863,395,30,'Холодильник'),
+    E('S2','kit',619,205,90,'Розетки у стола'),
+    E('L','kit',652,100,270,'Подвесной светильник над столом'),
+    E('P','kit',855,2,255,'Вывод под электрокарниз (по желанию)'),
+    E('W','bath',1048,520,100,'Стиральная машина: IP44, УЗО 10 мА, отдельная линия'),
+    E('W','bath',1048,455,200,'Бойлер: отдельная линия 16 А'),
+    E('W','bath',877,525,110,'Розетка у зеркала (фен, щётка)'),
+    E('L','bath',877,500,185,'Подсветка зеркального шкафа'),
+    E('P','bath',877,570,60,'Электрический полотенцесушитель'),
+    E('P','bath',1040,600,250,'Вытяжной вентилятор в канал'),
+  ],
+  layers:{furn:true,upper:true,elec:true,panels:true,heat:false,dims:true,heights:false},
+}}
+// fix the bedroom rug (declared w/d via opts)
+function fixDefaults(s){return s}
+
+const CATALOG=[
+  ['Кровать 160×200',{w:170,d:210,h:45,mat:'linen',kind:'bed',back:'T'}],
+  ['Кровать 140×200',{w:150,d:210,h:45,mat:'linen',kind:'bed',back:'T'}],
+  ['Диван-кровать 220×100',{w:220,d:100,h:85,mat:'terracotta',kind:'sofa',back:'T',ext:{dx:5,dy:0,w:210,d:210,label:'разложенный'}}],
+  ['Кресло 80×80',{w:80,d:80,h:80,mat:'olive',kind:'armchair',back:'T'}],
+  ['Шкаф 100×60',{w:100,d:60,h:260,mat:'paint',kind:'wardrobe',back:'T',store:1}],
+  ['Шкаф 150×60',{w:150,d:60,h:260,mat:'paint',kind:'wardrobe',back:'T',store:1}],
+  ['Шкаф 200×60',{w:200,d:60,h:260,mat:'paint',kind:'wardrobe',back:'T',store:1}],
+  ['Комод 100×45',{w:100,d:45,h:85,mat:'oak',back:'T',store:1}],
+  ['Стеллаж 80×35',{w:80,d:35,h:200,mat:'oak',back:'T',store:1}],
+  ['Тумба прикроватная 45×40',{w:45,d:40,h:55,mat:'oak',store:1}],
+  ['Рабочий стол 120×60',{w:120,d:60,h:75,mat:'oak',kind:'table'}],
+  ['Рабочий стол 140×70',{w:140,d:70,h:75,mat:'oak',kind:'table'}],
+  ['Обеденный стол 120×80',{w:120,d:80,h:75,mat:'oak',kind:'table'}],
+  ['Круглый стол Ø90',{w:90,d:90,h:75,mat:'oak',kind:'table'}],
+  ['Стул 45×50',{w:45,d:50,h:85,mat:'olive',kind:'chair',back:'B'}],
+  ['ТВ-тумба 180×40',{w:180,d:40,h:45,mat:'oak',back:'T',store:1}],
+  ['Банкетка 80×35',{w:80,d:35,h:45,mat:'linen'}],
+  ['Кухонный модуль 60×60',{w:60,d:60,h:90,mat:'beige',kind:'base',back:'T',store:1}],
+  ['Пенал кухонный 60×60',{w:60,d:60,h:240,mat:'beige',back:'T',store:1}],
+  ['Холодильник 60×65',{w:60,d:65,h:200,mat:'white',back:'T'}],
+  ['Стиральная машина 60×60',{w:60,d:60,h:85,mat:'white',back:'T'}],
+  ['Стиральная машина узкая 60×45',{w:60,d:45,h:85,mat:'white',back:'T'}],
+  ['Сушильная машина 60×60',{w:60,d:60,h:85,mat:'white',back:'T'}],
+  ['Ванна 160×70',{w:160,d:70,h:58,mat:'white',kind:'tub'}],
+  ['Душевой поддон 90×90',{w:90,d:90,h:10,mat:'white'}],
+  ['Тумба с раковиной 60×46',{w:60,d:46,h:85,mat:'oak',kind:'base',sub:'sink',back:'T',store:1}],
+  ['Ковёр 160×230',{w:160,d:230,h:1,mat:'rug',kind:'rug',nc:1}],
+  ['Рейки на стену, 100 см',{w:100,d:4,h:270,mat:'slats',cat:'p',nc:1}],
+];
+const ECAT=Object.keys(EK);
+
+/* ===================== STATE ===================== */
+const KEY='kv121-plan-v1';
+let state;
+try{state=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){state=null}
+if(!state||!Array.isArray(state.items)) state=fixDefaults(defaults());
+state.layers={...defaults().layers,...(state.layers||{})};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} renderFacts()}
+let sel=null, zoom=1, drag=null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const snap=v=>Math.round(v/5)*5;
+const find=id=>state.items.find(i=>i.id===id)||state.elec.find(i=>i.id===id);
+const roomName=id=>(ROOMS.find(r=>r.id===id)||{name:'—'}).name;
+const fmt=(v,d=1)=>v.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+/* ===================== HELPERS ===================== */
+const polyD=pts=>'M'+pts.map(p=>p.join(' ')).join('L')+'Z';
+const polyArea=pts=>{let a=0;for(let i=0;i<pts.length;i++){const[p,q]=[pts[i],pts[(i+1)%pts.length]];a+=p[0]*q[1]-q[0]*p[1]}return Math.abs(a)/2};
+const inPoly=(x,y,pts)=>{let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[xi,yi]=pts[i],[xj,yj]=pts[j];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c}return c};
+const ov=(a,b,m=0.5)=>a.x<b.x+b.w-m&&a.x+a.w>b.x+m&&a.y<b.y+(b.d??b.h)-m&&a.y+(a.d??a.h)>b.y+m;
+const solid=i=>i.cat==='f'&&!i.upper&&!i.nc;
+function collisions(){
+  const bad=new Set(); const f=state.items.filter(solid);
+  for(let i=0;i<f.length;i++){
+    for(let j=i+1;j<f.length;j++) if(ov(f[i],f[j])){bad.add(f[i].id);bad.add(f[j].id)}
+    for(const w of WALLS) if(ov(f[i],{x:w.x,y:w.y,w:w.w,d:w.h})) bad.add(f[i].id);
+  }
+  return bad;
+}
+function roomOfPoint(x,y){const r=ROOMS.find(r=>inPoly(x,y,r.pts));return r?r.id:null}
+
+/* distances from the selected item to the nearest wall or furniture in 4 directions */
+function distances(it){
+  const obs=[...WALLS.map(w=>({x:w.x,y:w.y,w:w.w,d:w.h})),...state.items.filter(i=>solid(i)&&i.id!==it.id)];
+  const cx=it.x+it.w/2, cy=it.y+it.d/2, out=[];
+  const dirs=[['L'],['R'],['T'],['B']];
+  for(const [dir] of dirs){
+    let best=null;
+    for(const o of obs){
+      if(dir==='L'||dir==='R'){ if(!(o.y<=cy&&o.y+o.d>=cy)) continue;
+        if(dir==='L'&&o.x+o.w<=it.x+0.5){const d=it.x-(o.x+o.w); if(best===null||d<best.d) best={d,a:o.x+o.w,b:it.x}}
+        if(dir==='R'&&o.x>=it.x+it.w-0.5){const d=o.x-(it.x+it.w); if(best===null||d<best.d) best={d,a:it.x+it.w,b:o.x}}
+      } else { if(!(o.x<=cx&&o.x+o.w>=cx)) continue;
+        if(dir==='T'&&o.y+o.d<=it.y+0.5){const d=it.y-(o.y+o.d); if(best===null||d<best.d) best={d,a:o.y+o.d,b:it.y}}
+        if(dir==='B'&&o.y>=it.y+it.d-0.5){const d=o.y-(it.y+it.d); if(best===null||d<best.d) best={d,a:it.y+it.d,b:o.y}}
+      }
+    }
+    if(best&&best.d>0.5&&best.d<600) out.push({dir,...best,cx,cy});
+  }
+  return out;
+}
+
+/* ===================== PLAN RENDER ===================== */
+const svg=$('#plan');
+function renderPlan(){
+  const L=state.layers, bad=collisions(); let s='';
+  s+=`<defs>
+    <pattern id="lam" width="120" height="18" patternUnits="userSpaceOnUse"><rect width="120" height="18" style="fill:var(--floor)"/><path d="M0 17.5H120M40 0V18" style="stroke:var(--floor-line)" stroke-width="1"/></pattern>
+    <pattern id="lam2" width="120" height="18" x="60" y="9" patternUnits="userSpaceOnUse"><path d="M40 0V18" style="stroke:var(--floor-line)" stroke-width="1"/></pattern>
+    <pattern id="tile" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" style="fill:var(--tile)"/><path d="M30 0V30H0" fill="none" style="stroke:var(--tile-line)" stroke-width="1"/></pattern>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" style="fill:var(--plan-bg)"/><rect width="2" height="7" style="fill:var(--wall-int)"/></pattern>
+    <pattern id="heat" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 8q4-6 8 0t8 0" fill="none" style="stroke:var(--heat)" stroke-width="1.3" opacity=".75"/></pattern>
+    <pattern id="slats" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#C9A173"/><rect width="1.4" height="5" fill="#7E5C38"/><rect width="5" height="1.4" fill="#7E5C38"/></pattern>
+  </defs>`;
+  // floors
+  for(const r of ROOMS) s+=`<path d="${polyD(r.pts)}" fill="url(#${r.tile?'tile':'lam'})"/>`;
+  if(L.heat){
+    for(const r of ROOMS.filter(r=>r.heat)) s+=`<path d="${polyD(r.pts)}" fill="url(#heat)"/>`;
+    // no heating under built-ins without legs
+    for(const i of state.items.filter(i=>i.cat==='f'&&!i.upper&&(i.kind==='wardrobe'||i.kind==='base'||i.kind==='tub'||/Пенал|Холод|Короб|Комод/.test(i.name))))
+      s+=`<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="url(#hatch)" opacity=".55"/>`;
+  }
+  // shafts
+  for(const sh of SHAFTS) s+=`<rect x="${sh.x}" y="${sh.y}" width="${sh.w}" height="${sh.h}" fill="url(#hatch)" style="stroke:var(--wall-int)" stroke-width="1"/>`;
+  // walls
+  for(const w of WALLS) s+=`<rect class="${w.e?'wall-ext':'wall-int'}" x="${w.x}" y="${w.y}" width="${w.w}" height="${w.h}"/>`;
+  // openings
+  for(const o of OPENINGS){
+    if(o.t==='win'){
+      s+=`<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" style="fill:var(--win);stroke:var(--wall)" stroke-width="1.2"/>`;
+      s+=`<line x1="${o.x}" x2="${o.x+o.w}" y1="${o.y+o.h/2}" y2="${o.y+o.h/2}" style="stroke:var(--wall)" stroke-width="1"/>`;
+      if(o.pano) s+=`<text class="t-ann" x="${o.x+o.w/2}" y="${o.y-8}" text-anchor="middle">${o.label}, h ${o.sill}–${o.head}</text>`;
+    } else {
+      s+=`<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" style="fill:var(--floor)"/>`;
+      if(o.t==='arch'){
+        s+=`<path d="M${o.x} ${o.y}H${o.x+o.w}M${o.x} ${o.y+o.h}H${o.x+o.w}" style="stroke:var(--wall-int)" stroke-dasharray="4 4" stroke-width="1"/>`;
+        s+=`<text class="t-ann" x="${o.x+o.w/2}" y="${o.y+o.h+14}" text-anchor="middle">арка ${o.w} см</text>`;
+      } else {
+        const [cx,cy]=o.c,[x1,y1]=o.p1,[x2,y2]=o.p2, r=Math.hypot(x1-cx,y1-cy);
+        const cr=(x1-cx)*(y2-cy)-(y1-cy)*(x2-cx);
+        s+=`<path d="M${x1} ${y1}A${r} ${r} 0 0 ${cr>0?1:0} ${x2} ${y2}" fill="none" style="stroke:var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>`;
+        s+=`<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" style="stroke:var(--wall)" stroke-width="2.5"/>`;
+        if(o.entry) s+=`<text class="t-ann" x="${o.x+o.w/2}" y="${o.y+o.h+40}" text-anchor="middle">вход</text>`;
+      }
+    }
+  }
+  // sofa unfolded ghosts
+  if(L.furn) for(const i of state.items) if(i.ext){
+    s+=`<rect x="${i.x+i.ext.dx}" y="${i.y+i.ext.dy}" width="${i.ext.w}" height="${i.ext.d}" fill="none" style="stroke:var(--accent)" stroke-dasharray="6 4" stroke-width="1.2"/>`;
+  }
+  // panels
+  if(L.panels) for(const i of state.items.filter(i=>i.cat==='p')){
+    s+=`<g class="item" data-id="${i.id}"><rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="url(#slats)" stroke="${sel===i.id?'var(--sel)':'#7E5C38'}" stroke-width="${sel===i.id?2.5:1}" style="stroke:${sel===i.id?'var(--sel)':'#7E5C38'}"/><rect x="${i.x-6}" y="${i.y-6}" width="${i.w+12}" height="${i.d+12}" fill="transparent"/></g>`;
+  }
+  // furniture
+  const lower=state.items.filter(i=>i.cat==='f'&&!i.upper), upper=state.items.filter(i=>i.cat==='f'&&i.upper);
+  const drawItem=(i,up)=>{
+    const m=MATS[i.mat]||MATS.oak, isSel=sel===i.id, isBad=bad.has(i.id);
+    const stroke=isSel?'var(--sel)':isBad?'var(--bad)':(up?'var(--muted)':'rgba(40,30,20,.55)');
+    let g=`<g class="item" data-id="${i.id}">`;
+    if(up) g+=`<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${m.c}" fill-opacity=".18" style="stroke:${stroke}" stroke-width="${isSel?2.5:1.2}" stroke-dasharray="5 3"/>`;
+    else g+=`<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${m.c}" ${i.kind==='rug'?'fill-opacity=".55"':''} style="stroke:${stroke}" stroke-width="${isSel||isBad?2.5:1}" rx="${i.kind==='sofa'||i.kind==='armchair'?6:1}"/>`;
+    // simple glyphs
+    if(!up&&i.kind==='bed'){const b=backRect(i,10);g+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.d}" fill="#B99B78"/>`;const pl=pillows(i);for(const p of pl)g+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.d}" rx="4" fill="#F5F1EA" stroke="rgba(0,0,0,.2)"/>`}
+    if(!up&&(i.kind==='sofa'||i.kind==='armchair'||i.kind==='chair')){const b=backRect(i,i.kind==='chair'?6:20);g+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.d}" fill="rgba(0,0,0,.18)"/>`}
+    if(!up&&i.sub==='hob'){const c=[i.x+i.w/2,i.y+i.d/2];g+=`<rect x="${c[0]-26}" y="${c[1]-26}" width="52" height="52" rx="3" fill="#2B2826"/>${[[-12,-12],[12,-12],[-12,12],[12,12]].map(([a,b])=>`<circle cx="${c[0]+a}" cy="${c[1]+b}" r="8" fill="none" stroke="#777" stroke-width="1.5"/>`).join('')}`}
+    if(!up&&i.sub==='sink'){const c=[i.x+i.w/2,i.y+i.d/2];const sw=Math.min(i.w,i.d)-14;g+=`<rect x="${c[0]-sw/2}" y="${c[1]-sw/2}" width="${sw}" height="${sw}" rx="8" fill="#E9E6E1" stroke="#8C877F"/>`}
+    if(!up&&i.kind==='tub'){g+=`<rect x="${i.x+6}" y="${i.y+6}" width="${i.w-12}" height="${i.d-12}" rx="22" fill="#FFFFFF" stroke="#A9A39A"/>`}
+    if(!up&&i.kind==='wc'){const ex=i.back==='R'?i.x:i.x+12;g+=`<ellipse cx="${i.x+i.w/2-(i.back==='R'?6:-6)}" cy="${i.y+i.d/2}" rx="${i.w/2-6}" ry="${i.d/2-3}" fill="#FFFFFF" stroke="#A9A39A"/>`}
+    // label
+    const big=Math.max(i.w,i.d), small=Math.min(i.w,i.d);
+    if(big>=45&&small>=22&&i.kind!=='tv'){
+      const vert=i.d>i.w*1.4, cx=i.x+i.w/2, cy=i.y+i.d/2, col=up?'var(--ink)':(DARKMAT.has(i.mat)?'#F6F1EA':'#2B2621');
+      const fs=small<35?9.5:11;
+      const maxCh=Math.floor(big/(fs*0.56));
+      let label=i.name.length>maxCh?i.name.slice(0,Math.max(3,maxCh-1))+'…':i.name;
+      const dim=`${Math.round(i.w)}×${Math.round(i.d)}`;
+      g+=`<text x="${cx}" y="${cy}" text-anchor="middle" font-size="${fs}" style="fill:${col}" ${vert?`transform="rotate(-90 ${cx} ${cy})"`:''}>`+
+         `<tspan x="${cx}" dy="${small>=40?-2:3}">${esc(label)}</tspan>${small>=40?`<tspan x="${cx}" dy="${fs+1}" font-family="IBM Plex Mono, monospace" font-size="${fs-1.5}" opacity=".75">${dim}${up?' · h '+i.z:''}</tspan>`:''}</text>`;
+    }
+    g+=`</g>`; return g;
+  };
+  if(L.furn){ for(const i of lower) s+=drawItem(i,false); }
+  if(L.upper){ for(const i of upper) s+=drawItem(i,true); }
+  // rooms labels
+  for(const r of ROOMS){
+    const a=polyArea(r.pts)/1e4;
+    s+=`<text class="t-room" x="${r.lx}" y="${r.ly}" text-anchor="middle">${r.name}</text>`;
+    s+=`<text class="t-sub" x="${r.lx}" y="${r.ly+15}" text-anchor="middle">${fmt(r.bti)} м²</text>`;
+    if(r.dims) s+=`<text class="t-sub" x="${r.lx}" y="${r.ly+28}" text-anchor="middle">${r.dims}</text>`;
+  }
+  // electrics
+  if(L.elec) for(const e of state.elec){
+    const k=EK[e.kind]||EK.S, isSel=sel===e.id;
+    s+=`<g class="item" data-id="${e.id}"><circle cx="${e.x}" cy="${e.y}" r="${isSel?9:7.5}" fill="${k.c}" style="stroke:${isSel?'var(--sel)':'var(--plan-bg)'}" stroke-width="${isSel?3:1.5}"/>`+
+       `<text x="${e.x}" y="${e.y+3.2}" text-anchor="middle" font-size="${k.k.length>1?6.5:8.5}" font-weight="700" fill="#fff">${k.k}</text>`+
+       (L.heights?`<text x="${e.x+10}" y="${e.y-6}" font-size="8.5" font-family="IBM Plex Mono, monospace" style="fill:var(--ink);paint-order:stroke;stroke:var(--plan-bg);stroke-width:2.5px">${e.h}</text>`:'')+
+       `<circle cx="${e.x}" cy="${e.y}" r="12" fill="transparent"/></g>`;
+  }
+  // dimensions
+  if(L.dims){
+    const hd=(x1,x2,y,t)=>`<line class="dimline" x1="${x1}" x2="${x2}" y1="${y}" y2="${y}"/><path class="dimline" d="M${x1-4} ${y+4}L${x1+4} ${y-4}M${x2-4} ${y+4}L${x2+4} ${y-4}M${x1} ${y-8}V${y+8}M${x2} ${y-8}V${y+8}"/><text class="t-dim" x="${(x1+x2)/2}" y="${y-5}" text-anchor="middle">${t}</text>`;
+    const vd=(y1,y2,x,t)=>`<line class="dimline" x1="${x}" x2="${x}" y1="${y1}" y2="${y2}"/><path class="dimline" d="M${x-4} ${y1+4}L${x+4} ${y1-4}M${x-4} ${y2+4}L${x+4} ${y2-4}M${x-8} ${y1}H${x+8}M${x-8} ${y2}H${x+8}"/><text class="t-dim" x="${x-6}" y="${(y1+y2)/2}" text-anchor="middle" transform="rotate(-90 ${x-6} ${(y1+y2)/2})">${t}</text>`;
+    s+=hd(0,299,-62,'2990')+hd(309,607,-62,'2980')+hd(617,865,-62,'2480');
+    s+=vd(0,542,-48,'5420');
+    s+=vd(360,672,1098,'3120')+hd(875,1050,725,'1750')+hd(685,865,760,'1800');
+  }
+  // selection distances
+  const si=sel&&find(sel);
+  if(si&&si.cat!=='e'&&!si.upper){
+    for(const d of distances(si)){
+      if(d.dir==='L'||d.dir==='R'){s+=`<line x1="${d.a}" x2="${d.b}" y1="${d.cy}" y2="${d.cy}" style="stroke:var(--sel)" stroke-width="1.2" marker-start="" /><text class="t-dist" x="${(d.a+d.b)/2}" y="${d.cy-4}" text-anchor="middle">${Math.round(d.d)}</text>`}
+      else{s+=`<line y1="${d.a}" y2="${d.b}" x1="${d.cx}" x2="${d.cx}" style="stroke:var(--sel)" stroke-width="1.2"/><text class="t-dist" x="${d.cx+5}" y="${(d.a+d.b)/2+4}">${Math.round(d.d)}</text>`}
+    }
+  }
+  svg.innerHTML=s;
+  const n=bad.size;
+  $('#coll-msg').innerHTML=n?`<span class="warn">Пересечения: ${n} ${n===1?'предмет':'предм.'} отмечены красным</span>`:'Пересечений нет';
+}
+function backRect(i,t){
+  switch(i.back){case 'L':return{x:i.x,y:i.y,w:t,d:i.d};case 'R':return{x:i.x+i.w-t,y:i.y,w:t,d:i.d};case 'B':return{x:i.x,y:i.y+i.d-t,w:i.w,d:t};default:return{x:i.x,y:i.y,w:i.w,d:t}}
+}
+function pillows(i){
+  const horiz=i.back==='L'||i.back==='R', len=horiz?i.d:i.w, pw=Math.min(60,(len-24)/2), off=14;
+  const a=horiz?i.y:i.x, out=[];
+  for(const k of [0,1]){const s=a+(len/2)+(k?6:-6-pw);
+    if(horiz) out.push({x:i.back==='L'?i.x+off:i.x+i.w-off-38,y:s,w:38,d:pw});
+    else out.push({x:s,y:i.back==='T'?i.y+off:i.y+i.d-off-38,w:pw,d:38});}
+  return out;
+}
+
+/* ===================== INTERACTION ===================== */
+function svgPt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())}
+svg.addEventListener('pointerdown',e=>{
+  const t=e.target.closest('[data-id]');
+  if(!t){ if(sel){sel=null;renderPlan();renderEditor();} return; }
+  const it=find(t.dataset.id); if(!it) return;
+  sel=it.id; const p=svgPt(e);
+  drag={id:it.id,ox:p.x-it.x,oy:p.y-it.y,moved:false,pid:e.pointerId};
+  svg.setPointerCapture(e.pointerId); e.preventDefault();
+  renderPlan(); renderEditor();
+});
+svg.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.pid) return;
+  const it=find(drag.id), p=svgPt(e), step=it.cat==='e'?1:5;
+  const nx=Math.round((p.x-drag.ox)/step)*step, ny=Math.round((p.y-drag.oy)/step)*step;
+  if(nx!==it.x||ny!==it.y){it.x=nx;it.y=ny;drag.moved=true;renderPlan();syncXY(it)}
+});
+const endDrag=e=>{ if(!drag) return; const it=find(drag.id);
+  if(drag.moved&&it&&it.cat!=='e'){const r=roomOfPoint(it.x+it.w/2,it.y+it.d/2); if(r) it.room=r;}
+  if(drag.moved&&it&&it.cat==='e'){const r=roomOfPoint(it.x,it.y)||nearestRoom(it.x,it.y); if(r) it.room=r;}
+  if(drag.moved){save(); renderEditor();} drag=null; };
+svg.addEventListener('pointerup',endDrag); svg.addEventListener('pointercancel',endDrag);
+function nearestRoom(x,y){let best=null,bd=1e9;for(const r of ROOMS)for(const[dx,dy] of [[8,0],[-8,0],[0,8],[0,-8],[14,0],[-14,0],[0,14],[0,-14]]){if(inPoly(x+dx,y+dy,r.pts)){const d=Math.hypot(dx,dy);if(d<bd){bd=d;best=r.id}}}return best}
+document.addEventListener('keydown',e=>{
+  if(!sel||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if($('#tab-plan').hidden) return;
+  const it=find(sel); if(!it) return; const st=e.shiftKey?1:5;
+  const mv={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];
+  if(mv){it.x+=mv[0];it.y+=mv[1];e.preventDefault();save();renderPlan();syncXY(it);return}
+  if(e.key==='Delete'||e.key==='Backspace'){removeSel();e.preventDefault()}
+  if((e.key==='r'||e.key==='R'||e.key==='к'||e.key==='К')&&it.cat!=='e'){rotate(it);save();renderPlan();renderEditor()}
+});
+function rotate(it){
+  const cx=it.x+it.w/2, cy=it.y+it.d/2;
+  if(it.ext){const x=it.ext; it.ext={dx:it.d-(x.dy+x.d),dy:x.dx,w:x.d,d:x.w,label:x.label}}
+  [it.w,it.d]=[it.d,it.w]; it.x=snap(cx-it.w/2); it.y=snap(cy-it.d/2);
+  if(it.back) it.back={L:'T',T:'R',R:'B',B:'L'}[it.back];
+}
+function removeSel(){
+  state.items=state.items.filter(i=>i.id!==sel); state.elec=state.elec.filter(i=>i.id!==sel);
+  sel=null; save(); renderPlan(); renderEditor();
+}
+function syncXY(it){const x=$('#ed-x'),y=$('#ed-y'); if(x) x.value=Math.round(it.x); if(y) y.value=Math.round(it.y)}
+
+/* ===================== EDITOR ===================== */
+function renderEditor(){
+  const ed=$('#editor'), it=sel&&find(sel);
+  if(!it){ed.innerHTML=`<h3>Выбранный предмет</h3><p class="note">Нажмите на мебель или розетку на плане. Перетаскивайте мышью или пальцем, стрелки двигают на 5 см (с Shift на 1 см), R поворачивает, Delete удаляет. Синие цифры показывают расстояние до стен и мебели в сантиметрах.</p>`;return}
+  if(it.cat==='e'){
+    ed.innerHTML=`<h3>Электроточка · ${esc(roomName(it.room))}</h3>
+    <div class="form">
+      <label class="w3">Тип<select id="ed-kind">${ECAT.map(k=>`<option value="${k}" ${k===it.kind?'selected':''}>${EK[k].n}</option>`).join('')}</select></label>
+      <label class="w3">Назначение<input id="ed-label" value="${esc(it.label)}"></label>
+      <label>Высота, см<input type="number" id="ed-h" value="${it.h}"></label>
+      <label>X<input type="number" id="ed-x" value="${Math.round(it.x)}"></label>
+      <label>Y<input type="number" id="ed-y" value="${Math.round(it.y)}"></label>
+    </div>
+    <div class="row"><button class="btn" id="ed-dup">Дублировать</button><button class="btn danger" id="ed-del">Удалить</button></div>`;
+  } else {
+    ed.innerHTML=`<h3>${it.cat==='p'?'Стеновая панель':'Мебель'} · ${esc(roomName(it.room))}</h3>
+    <div class="form">
+      <label class="w3">Название<input id="ed-name" value="${esc(it.name)}"></label>
+      <label>Ширина<input type="number" id="ed-w" value="${it.w}" min="1"></label>
+      <label>Глубина<input type="number" id="ed-d" value="${it.d}" min="1"></label>
+      <label>Высота<input type="number" id="ed-h" value="${it.h}" min="1"></label>
+      <label>X<input type="number" id="ed-x" value="${Math.round(it.x)}"></label>
+      <label>Y<input type="number" id="ed-y" value="${Math.round(it.y)}"></label>
+      <label>От пола<input type="number" id="ed-z" value="${it.z||0}" min="0"></label>
+      <label class="w3">Материал<select id="ed-mat">${Object.entries(MATS).map(([k,m])=>`<option value="${k}" ${k===it.mat?'selected':''}>${m.n}</option>`).join('')}</select></label>
+    </div>
+    <div class="row">
+      <button class="btn" id="ed-rot">Повернуть 90°</button>
+      <button class="btn" id="ed-dup">Дублировать</button>
+      <button class="btn danger" id="ed-del">Удалить</button>
+    </div>
+    <p class="note">Размеры в сантиметрах. «От пола» нужно для навесных шкафов и полок: они рисуются пунктиром и не считаются препятствием.</p>`;
+  }
+  const bind=(id,fn,ev='input')=>{const el=$(id); if(el) el.addEventListener(ev,()=>{fn(el);save();renderPlan()})};
+  bind('#ed-name',el=>it.name=el.value);
+  bind('#ed-label',el=>it.label=el.value);
+  bind('#ed-kind',el=>it.kind=el.value,'change');
+  bind('#ed-mat',el=>it.mat=el.value,'change');
+  for(const k of ['w','d','h','x','y','z']) bind('#ed-'+k,el=>{const v=parseFloat(el.value); if(!isNaN(v)) { it[k]=v; if(k==='z'&&it.cat==='f') it.upper=v>=60?1:0; }});
+  $('#ed-del').onclick=removeSel;
+  $('#ed-dup').onclick=()=>{const c=JSON.parse(JSON.stringify(it)); c.id=nid(it.cat); c.x+=it.cat==='e'?15:20; c.y+=it.cat==='e'?0:20; (it.cat==='e'?state.elec:state.items).push(c); sel=c.id; save(); renderPlan(); renderEditor()};
+  const r=$('#ed-rot'); if(r) r.onclick=()=>{rotate(it);save();renderPlan();renderEditor()};
+}
+
+/* ===================== LAYERS / ADD / PROJECT ===================== */
+const LAYERS=[['furn','Мебель'],['upper','Навесное'],['panels','Деревянные панели'],['elec','Электрика'],['heights','Высоты розеток'],['heat','Тёплый пол'],['dims','Размеры']];
+function renderLayers(){
+  $('#layers').innerHTML=LAYERS.map(([k,n])=>`<button class="chip" data-layer="${k}" aria-pressed="${!!state.layers[k]}">${n}</button>`).join('');
+}
+$('#layers').addEventListener('click',e=>{const b=e.target.closest('[data-layer]'); if(!b) return; const k=b.dataset.layer; state.layers[k]=!state.layers[k]; save(); renderLayers(); renderPlan()});
+$('#add-what').innerHTML=`<optgroup label="Мебель и техника">${CATALOG.map((c,i)=>`<option value="c${i}">${c[0]}</option>`).join('')}</optgroup><optgroup label="Электрика">${ECAT.map(k=>`<option value="e${k}">${EK[k].n}</option>`).join('')}</optgroup>`;
+$('#add-room').innerHTML=ROOMS.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+$('#add-btn').onclick=()=>{
+  const v=$('#add-what').value, room=$('#add-room').value, r=ROOMS.find(x=>x.id===room);
+  const xs=r.pts.map(p=>p[0]), ys=r.pts.map(p=>p[1]);
+  let cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
+  if(!inPoly(cx,cy,r.pts)){cx=r.lx;cy=r.ly-40}
+  let it;
+  if(v[0]==='e'){it=E(v.slice(1),room,Math.round(cx),Math.round(cy),30,EK[v.slice(1)].n); state.elec.push(it)}
+  else{const [name,o]=CATALOG[+v.slice(1)]; const oo=JSON.parse(JSON.stringify(o));
+    it={id:nid('f'),cat:oo.cat||'f',name,room,z:0,...oo,x:snap(cx-oo.w/2),y:snap(cy-oo.d/2)}; state.items.push(it)}
+  sel=it.id; save(); renderPlan(); renderEditor();
+};
+const ceil=$('#ceiling'); ceil.value=state.ceiling;
+ceil.addEventListener('input',()=>{const v=parseFloat(ceil.value); if(v>=200&&v<=400){state.ceiling=v; for(const i of state.items) if(i.cat==='p') i.h=v; save()}});
+// export / import
+$('#exp-btn').onclick=()=>{
+  $('#io').hidden=false; $('#io-text').value=JSON.stringify({ceiling:state.ceiling,items:state.items,elec:state.elec},null,1);
+  $('#io-actions').innerHTML=`<button class="btn primary" id="io-copy">Скопировать</button><button class="btn" id="io-close">Закрыть</button>`;
+  $('#io-msg').textContent='';
+  $('#io-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('#io-text').value);$('#io-msg').textContent='Скопировано'}catch(e){$('#io-text').select();$('#io-msg').textContent='Текст выделен, скопируйте его вручную (Ctrl+C)'}};
+  $('#io-close').onclick=()=>$('#io').hidden=true;
+};
+$('#imp-btn').onclick=()=>{
+  $('#io').hidden=false; $('#io-text').value=''; $('#io-text').placeholder='Вставьте сюда текст, полученный через «Экспорт»';
+  $('#io-actions').innerHTML=`<button class="btn primary" id="io-apply">Загрузить</button><button class="btn" id="io-close">Закрыть</button>`;
+  $('#io-msg').textContent='';
+  $('#io-apply').onclick=()=>{try{const d=JSON.parse($('#io-text').value); if(!Array.isArray(d.items)||!Array.isArray(d.elec)) throw 0;
+      state.items=d.items; state.elec=d.elec; state.ceiling=d.ceiling||270; ceil.value=state.ceiling; sel=null; save(); renderAll(); $('#io-msg').textContent='Проект загружен'}
+    catch(e){$('#io-msg').textContent='Не получилось прочитать текст. Скопируйте его из «Экспорта» целиком, от первой до последней скобки.'}};
+  $('#io-close').onclick=()=>$('#io').hidden=true;
+};
+$('#reset-zone').addEventListener('click',e=>{
+  const z=$('#reset-zone');
+  if(e.target.id==='reset-btn'){z.innerHTML=`<span class="confirm"><span class="small">Все правки пропадут.</span><button class="btn danger" id="reset-yes">Сбросить</button><button class="btn" id="reset-no">Отмена</button></span>`}
+  else if(e.target.id==='reset-yes'){const l=state.layers; state=fixDefaults(defaults()); state.layers=l; ceil.value=state.ceiling; sel=null; save(); renderAll(); z.innerHTML=`<button class="btn danger" id="reset-btn">Сбросить к исходному</button>`}
+  else if(e.target.id==='reset-no'){z.innerHTML=`<button class="btn danger" id="reset-btn">Сбросить к исходному</button>`}
+});
+// zoom
+const setZoom=z=>{zoom=Math.max(1,Math.min(3,z)); svg.style.width=(zoom*100)+'%'; $('#zoom-val').textContent=Math.round(zoom*100)+'%'};
+$('#zoom-in').onclick=()=>setZoom(zoom+0.25); $('#zoom-out').onclick=()=>setZoom(zoom-0.25);
+
+/* ===================== FACTS ===================== */
+function renderFacts(){
+  const tot=ROOMS.reduce((a,r)=>a+r.bti,0);
+  $('#facts').innerHTML=`<span>Общая <b>${fmt(tot)} м²</b></span><span>Комнаты <b>2</b></span><span>Потолок <b>${state.ceiling} см</b></span><span>Розеток <b>${countSockets()}</b></span>`;
+}
+function countSockets(){let n=0;for(const e of state.elec){if(e.kind==='S'||e.kind==='W')n+=1;if(e.kind==='S2'||e.kind==='SU')n+=2}return n}
+
+/* ===================== ELECTRIC TAB ===================== */
+function renderElec(){
+  const byKind={}; for(const e of state.elec){byKind[e.kind]=(byKind[e.kind]||0)+1}
+  let h=`<div class="stats">
+    <div class="stat"><b>${countSockets()}</b><span>розеточных гнёзд всего</span></div>
+    <div class="stat"><b>${(byKind.SW||0)+(byKind.SW2||0)}</b><span>выключателей (из них проходных ${byKind.SW2||0})</span></div>
+    <div class="stat"><b>${byKind.P||0}</b><span>силовых выводов</span></div>
+    <div class="stat"><b>${(byKind.LAN||0)}</b><span>слаботочных точек</span></div>
+  </div>
+  <div class="cols" style="margin-top:14px">
+    <div class="card"><h3>Обозначения</h3><div class="legend">${ECAT.map(k=>`<span><i class="dot" style="background:${EK[k].c}">${EK[k].k}</i>${EK[k].n}</span>`).join('')}</div></div>
+    <div class="card"><h3>Стандартные высоты (от чистого пола)</h3>
+      <div class="note">Выключатели 90 см, у кровати 70. Розетки общие 30 см, у тумб 70, над рабочим столом 85, над кухонной столешницей 105–110, за ТВ 110. Вытяжка 210–220. Кондиционер 220–240. Стиральная машина 100 (IP44, с УЗО). В санузле розетки не ближе 60 см от ванны.</div>
+    </div>
+    <div class="card"><h3>Отдельные линии в щитке</h3>
+      <div class="note">Варочная панель 32 А (кабель 3×6 мм²). Духовой шкаф 16 А. Посудомойка 16 А. Стиральная машина 16 А с УЗО. Бойлер 16 А. По линии на каждый кондиционер. Тёплый пол отдельно по комнатам. Розетки кухни отдельно от комнат. Окончательный расчёт сделает электрик: эта таблица — задание для него.</div>
+    </div>
+  </div>`;
+  for(const r of ROOMS){
+    const list=state.elec.filter(e=>e.room===r.id).sort((a,b)=>a.h-b.h);
+    if(!list.length) continue;
+    h+=`<h3 class="room-h">${r.name}</h3><div class="tbl"><table><thead><tr><th>Тип</th><th>Назначение</th><th class="num">Высота, см</th><th class="num">X, см</th><th class="num">Y, см</th></tr></thead><tbody>`+
+      list.map(e=>`<tr><td><span style="display:inline-flex;gap:6px;align-items:center"><i class="dot" style="background:${EK[e.kind].c}">${EK[e.kind].k}</i>${EK[e.kind].n}</span></td><td>${esc(e.label)}</td><td class="num">${e.h}</td><td class="num">${Math.round(e.x)}</td><td class="num">${Math.round(e.y)}</td></tr>`).join('')+`</tbody></table></div>`;
+  }
+  h+=`<p class="note" style="margin-top:12px">X и Y отсчитываются от левого верхнего внутреннего угла спальни (стена с окнами сверху). Точки можно двигать на плане, таблица обновится сама.</p>`;
+  $('#tab-elec').innerHTML=h;
+}
+
+/* ===================== FURNITURE TAB ===================== */
+function renderFurn(){
+  const st=state.items.filter(i=>i.cat==='f'&&i.store);
+  const vol=st.reduce((a,i)=>a+i.w*i.d*i.h/1e6,0);
+  const tall=st.filter(i=>i.h>=200);
+  const tallLen=tall.reduce((a,i)=>a+Math.max(i.w,i.d),0)/100;
+  let h=`<div class="stats">
+    <div class="stat"><b>${fmt(vol,1)} м³</b><span>объём закрытого хранения</span></div>
+    <div class="stat"><b>${fmt(tallLen,1)} м</b><span>шкафов в пол-потолок по длине</span></div>
+    <div class="stat"><b>${state.items.filter(i=>i.cat==='f').length}</b><span>предметов мебели и техники</span></div>
+    <div class="stat"><b>${fmt(state.items.filter(i=>i.cat==='p').reduce((a,i)=>a+Math.max(i.w,i.d)*state.ceiling/1e4,0),1)} м²</b><span>деревянных панелей на стенах</span></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Где хранить</h3><div class="note prose">
+  <ul>
+    <li><b>Прихожая.</b> Шкаф 60 см в нише у входа, от пола до потолка: верхняя одежда, обувь внизу, пылесос и сушилка для обуви на розетке внутри. Вдоль коридора комод глубиной 30 см: проход остаётся 62 см. Над коридором можно сделать антресоль под сезонные вещи.</li>
+    <li><b>Спальня.</b> Шкаф 210 см вдоль стены у двери, фасады в цвет стен, чтобы он растворялся. Можно взять кровать с подъёмным механизмом, это ещё около 1 м³.</li>
+    <li><b>Гостиная-кабинет.</b> Шкаф 140 см у двери для вещей и белья для гостей. ТВ-тумба и полки над столом под документы.</li>
+    <li><b>Кухня.</b> Пенал-кладовая глубиной 40 см на всю высоту для круп и банок. Верхние шкафы до потолка.</li>
+    <li><b>Санузел.</b> Шкаф с бойлером над стиральной машиной, зеркальный шкаф над раковиной, полка на коробе инсталляции, ниша над ванной.</li>
+  </ul></div></div>`;
+  for(const r of ROOMS){
+    const list=state.items.filter(i=>i.room===r.id&&(i.cat==='f'||i.cat==='p'));
+    if(!list.length) continue;
+    h+=`<h3 class="room-h">${r.name} · ${fmt(r.bti)} м²</h3><div class="tbl"><table><thead><tr><th>Предмет</th><th class="num">Ш × Г × В, см</th><th class="num">От пола</th><th>Материал</th></tr></thead><tbody>`+
+      list.map(i=>`<tr><td>${esc(i.name)}</td><td class="num">${Math.round(Math.max(i.w,i.d))} × ${Math.round(Math.min(i.w,i.d))} × ${Math.round(i.cat==='p'?state.ceiling:i.h)}</td><td class="num">${i.z||0}</td><td><span style="display:inline-flex;gap:6px;align-items:center"><i class="dot" style="background:${(MATS[i.mat]||MATS.oak).c};border:1px solid var(--line)"></i>${(MATS[i.mat]||MATS.oak).n}</span></td></tr>`).join('')+`</tbody></table></div>`;
+  }
+  $('#tab-furn').innerHTML=h;
+}
+
+/* ===================== CONCEPT TAB ===================== */
+function renderConcept(){
+  const sw=[
+    ['#EFE7DB','Стены','Тёплый молочный, одинаковый во всей квартире. Ориентир NCS S 0804-Y30R.'],
+    ['#C9A173','Дерево','Дуб натуральный. Ламинат, рейки и шпон фасадов в одном тоне: подбирать по одному образцу.'],
+    ['#E4D5C0','Бежевый','Кухонные фасады, короба, плитка в санузле.'],
+    ['#DCCFBC','Текстиль','Лён и букле: кровать, шторы, пледы.'],
+    ['#B8653F','Терракота','Главный акцент: диван, подушки, плитка-ниша в ванной.'],
+    ['#7E8350','Олива','Второй акцент: стулья на кухне, кресло, растения.'],
+    ['#3A3632','Графит','Мелочи: ручки, светильники, смеситель, карниз.'],
+  ];
+  $('#tab-concept').innerHTML=`
+  <div class="sw">${sw.map(([c,n,t])=>`<div><i style="background:${c}"></i><p><b>${n}</b>${t}</p></div>`).join('')}</div>
+  <div class="cols" style="margin-top:16px">
+    <div class="card prose"><h3>Общий принцип</h3>
+      <p>Светлый тёплый фон, одно дерево по всей квартире и два акцентных цвета, которые повторяются из комнаты в комнату. Серого почти нет: даже металл выбирайте графитовым или латунным. Рейки ставим только на одну стену в комнате, чтобы они были акцентом, а не обшивкой.</p>
+      <h4>Панорамные окна</h4>
+      <ul><li>Карниз в потолочной нише или скрытый профиль, шторы от пола до потолка. Под электрокарниз заложен вывод.</li>
+      <li>У стекла не ставим высокую мебель. Рабочий стол стоит боком к окну, свет падает слева.</li>
+      <li>Если батарей нет, вдоль стекла можно поставить внутрипольный конвектор (ширина около 25 см): окна не будут запотевать.</li></ul>
+    </div>
+    <div class="card prose"><h3>По комнатам</h3>
+      <h4>Спальня</h4><p>Рейки за изголовьем, кровать в льне, кресло оливкового цвета у окна. Бра на выводах, общий свет включается проходным выключателем от двери и от кровати.</p>
+      <h4>Гостиная-кабинет</h4><p>Терракотовый диван-кровать, напротив стена с рейками и ТВ. Рабочее место у окна с полками над столом. В разложенном виде диван оставляет до ТВ-тумбы проход около 50 см.</p>
+      <h4>Кухня</h4><p>Арка вместо двери. Нижние фасады бежевые матовые, верхние в дубе до потолка, фартук из бежевой плитки ручной формовки. Варочная панель рядом с вентканалом, мойка ближе к стояку. Стол у стены с деревянной панелью, оливковые стулья.</p>
+      <h4>Санузел</h4><p>Бежевая плитка крупного формата, тумба в дубе, терракотовая плитка в нише над ванной. Инсталляция у стояка, стиральная машина и шкаф с бойлером напротив тумбы. Проход между ними около 70 см.</p>
+      <h4>Прихожая</h4><p>Шкаф в дубе в нише у входа, зеркало в пол на стене с рейками, узкий комод вдоль коридора.</p>
+    </div>
+    <div class="card prose"><h3>Что проверить до ремонта</h3>
+      <ul>
+        <li>Размеры взяты с плана БТИ. Ширина кухни по площади выходит 2,48 м, хотя у коридора подписано 2,58. Санузел и прихожая на плане упрощены. Перемерьте их рулеткой и поправьте в редакторе.</li>
+        <li>Высота потолка принята 270 см. Её можно поменять во вкладке «План».</li>
+        <li>Объединение ванной и туалета и расширение кухонного проёма под арку — это перепланировка. Сначала нужно проверить, не несущие ли стены, и согласовать работы. Гидроизоляцию санузла делать по всему полу.</li>
+        <li>Где находится электрощиток, на плане не видно. Покажите, и я привяжу к нему трассы.</li>
+        <li>Тёплый пол не кладут под шкафы, кухню и ванну. Посмотрите слой «Тёплый пол»: штриховкой отмечены места, где обогрев не нужен.</li>
+      </ul>
+    </div>
+    <div class="card prose"><h3>Если нужен фотореалистичный рендер</h3>
+      <p>Этот план годится для расстановки, замеров и задания электрику. Для «живых» картинок с материалами можно перенести размеры отсюда в Planoplan (русскоязычный, рендеры в браузере) или в бесплатный Sweet Home 3D. Все размеры есть во вкладках «Мебель и хранение» и «Электрика».</p>
+    </div>
+  </div>`;
+}
+
+/* ===================== TABS ===================== */
+let activeTab='plan';
+$('#tabs').addEventListener('click',e=>{
+  const b=e.target.closest('[data-tab]'); if(!b) return;
+  activeTab=b.dataset.tab;
+  for(const x of document.querySelectorAll('#tabs [data-tab]')) x.setAttribute('aria-selected',x===b);
+  for(const t of ['plan','v3d','elec','furn','concept']) $('#tab-'+t).hidden=t!==activeTab;
+  if(activeTab==='elec') renderElec();
+  if(activeTab==='furn') renderFurn();
+  if(activeTab==='v3d') init3D();
+  try{localStorage.setItem(KEY+'-tab',activeTab)}catch(e){}
+});
+
+function renderAll(){renderFacts();renderLayers();renderPlan();renderEditor();renderConcept();if(activeTab==='elec')renderElec();if(activeTab==='furn')renderFurn()}
+renderAll();
+try{const t=localStorage.getItem(KEY+'-tab'); if(t&&t!=='plan'){const b=document.querySelector(`#tabs [data-tab="${t}"]`); if(b) b.click()}}catch(e){}
+
+/* ===================== 3D ===================== */
+let T=null; // {THREE, renderer, scene, camera, controls, group}
+let cutWalls=true, v3elec=false;
+$('#cut-walls').onclick=e=>{cutWalls=!cutWalls;e.currentTarget.setAttribute('aria-pressed',cutWalls);build3D()};
+$('#v3-elec').onclick=e=>{v3elec=!v3elec;e.currentTarget.setAttribute('aria-pressed',v3elec);build3D()};
+$('#v3-reset').onclick=()=>{if(!T)return;T.camera.position.set(5.2,13,4.2);T.controls.target.set(5.2,0,3.3);T.controls.update()};
+async function init3D(){
+  if(T){build3D();resize3D();return}
+  const status=$('#v3-status');
+  let THREE,OrbitControls;
+  try{THREE=await import('three');({OrbitControls}=await import('three/addons/controls/OrbitControls.js'))}
+  catch(e){status.textContent='3D не загрузился: нет доступа к библиотеке. Обновите страницу.';return}
+  const host=$('#v3');
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+  host.appendChild(renderer.domElement);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(42,1,0.05,200);
+  camera.position.set(5.6,8.5,11.5);
+  const controls=new OrbitControls(camera,renderer.domElement);
+  controls.target.set(5.2,0.4,3.3); controls.enableDamping=true; controls.maxPolarAngle=Math.PI*0.495; controls.minDistance=1; controls.maxDistance=30;
+  scene.add(new THREE.HemisphereLight(0xfff4e6,0xb8a389,1.1));
+  const sun=new THREE.DirectionalLight(0xffeedd,2.0); sun.position.set(2.5,9,-7); sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:0.5,far:30}); sun.shadow.bias=-0.0005;
+  sun.target.position.set(5,0,3.5); scene.add(sun,sun.target);
+  const fill=new THREE.DirectionalLight(0xfff8ef,0.5); fill.position.set(10,6,10); scene.add(fill);
+  const group=new THREE.Group(); scene.add(group);
+  T={THREE,renderer,scene,camera,controls,group,mats:{},tex:{}};
+  new ResizeObserver(resize3D).observe(host);
+  status.textContent='';
+  build3D(); resize3D();
+  (function loop(){requestAnimationFrame(loop); if(activeTab!=='v3d') return; controls.update(); renderer.render(scene,camera)})();
+}
+function resize3D(){if(!T)return;const h=$('#v3'),w=h.clientWidth,hh=h.clientHeight;if(!w||!hh)return;T.renderer.setSize(w,hh,false);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix()}
+function canvasTex(key,size,draw,rep){
+  if(T.tex[key]) return T.tex[key];
+  const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');draw(g,size);
+  const t=new T.THREE.CanvasTexture(c);t.wrapS=t.wrapT=T.THREE.RepeatWrapping;t.colorSpace=T.THREE.SRGBColorSpace;if(rep)t.repeat.set(rep[0],rep[1]);t.anisotropy=4;
+  return T.tex[key]=t;
+}
+function mat(color,opt={}){
+  const k=color+JSON.stringify(opt); if(T.mats[k]) return T.mats[k];
+  return T.mats[k]=new T.THREE.MeshStandardMaterial({color,roughness:0.8,metalness:0,...opt});
+}
+function build3D(){
+  if(!T) return; const {THREE,group,scene}=T;
+  scene.background=new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--v3bg').trim()||'#EFE9E0');
+  for(const ch of [...group.children]){group.remove(ch); ch.geometry&&ch.geometry.dispose()}
+  const H=state.ceiling, WH=cutWalls?Math.min(H,120):H;
+  const box=(x,y,w,d,z,h,m,cast=true)=>{ if(w<=0||d<=0||h<=0) return null;
+    const me=new THREE.Mesh(new THREE.BoxGeometry(w/100,h/100,d/100),m); me.position.set((x+w/2)/100,(z+h/2)/100,(y+d/2)/100);
+    me.castShadow=cast; me.receiveShadow=true; group.add(me); return me; };
+  // textures
+  const lam=canvasTex('lam',512,(g,s)=>{const rows=5,ph=s/rows;for(let r=0;r<rows;r++){let x=-(r*97%s);while(x<s){const len=s*0.55+((r*37+x)%60);const l=58+((r*13+Math.abs(x))%9);g.fillStyle=`hsl(33,42%,${l}%)`;g.fillRect(x,r*ph,len,ph);for(let k=0;k<14;k++){g.strokeStyle=`rgba(110,75,40,${0.05+((k*7)%5)/100})`;g.beginPath();const yy=r*ph+((k*29)%ph);g.moveTo(x,yy);g.bezierCurveTo(x+len*0.3,yy+3,x+len*0.6,yy-3,x+len,yy+1);g.stroke()}g.fillStyle='rgba(90,60,30,.35)';g.fillRect(x,r*ph,2,ph);x+=len}g.fillStyle='rgba(90,60,30,.3)';g.fillRect(0,r*ph,s,1.5)}});
+  const tile=canvasTex('tile',256,(g,s)=>{g.fillStyle='#E6DED2';g.fillRect(0,0,s,s);g.strokeStyle='#CFC4B4';g.lineWidth=3;g.strokeRect(0,0,s,s)});
+  const slats=canvasTex('slats',256,(g,s)=>{g.fillStyle='#6A4A2C';g.fillRect(0,0,s,s);for(let i=0;i<8;i++){g.fillStyle=`hsl(33,40%,${57+(i%3)*2}%)`;g.fillRect(i*32+5,0,22,s)}});
+  // floors
+  for(const r of ROOMS){
+    const sh=new THREE.Shape(r.pts.map(p=>new THREE.Vector2(p[0]/100,p[1]/100)));
+    const geo=new THREE.ShapeGeometry(sh); geo.rotateX(Math.PI/2);
+    const t=r.tile?tile.clone():lam.clone(); t.needsUpdate=true; if(r.tile) t.repeat.set(1/0.6,1/0.6); else t.repeat.set(1/1.3,1/1.3);
+    const me=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:t,roughness:0.75,side:THREE.DoubleSide})); me.receiveShadow=true; group.add(me);
+  }
+  // walls with openings
+  const wallM=mat('#EFE7DB',{roughness:0.95}), extM=mat('#E5DCCD',{roughness:0.95}), glassM=mat('#BFD8E6',{transparent:true,opacity:0.22,roughness:0.05,metalness:0.1}), frameM=mat('#3A3632');
+  const ovr=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+  for(const w of WALLS){
+    const hz=w.w>=w.h, a0=hz?w.x:w.y, a1=hz?w.x+w.w:w.y+w.h;
+    const ops=OPENINGS.filter(o=>ovr(o,w)).map(o=>({s:Math.max(a0,hz?o.x:o.y),e:Math.min(a1,hz?o.x+o.w:o.y+o.h),o})).sort((a,b)=>a.s-b.s);
+    const pcs=[]; let cur=a0;
+    for(const p of ops){ if(p.s>cur) pcs.push([cur,p.s,0,WH]); if(p.o.sill>0) pcs.push([p.s,p.e,0,Math.min(p.o.sill,WH)]); if(p.o.head<WH) pcs.push([p.s,p.e,p.o.head,WH]); cur=Math.max(cur,p.e);
+      if(p.o.t==='win'){const z0=p.o.sill,z1=Math.min(p.o.head,WH); if(z1>z0){ if(hz){box(p.s,w.y+w.h/2-1,p.e-p.s,2,z0,z1-z0,glassM,false); box(p.s,w.y+w.h/2-2,p.e-p.s,4,z0,3,frameM,false); if(p.o.head<=WH) box(p.s,w.y+w.h/2-2,p.e-p.s,4,z1-3,3,frameM,false); const n=Math.max(1,Math.round((p.e-p.s)/90)); for(let k=1;k<n;k++) box(p.s+(p.e-p.s)*k/n-2,w.y+w.h/2-2,4,4,z0,z1-z0,frameM,false);} } } }
+    if(cur<a1) pcs.push([cur,a1,0,WH]);
+    for(const [s,e,z0,z1] of pcs){ if(z1<=z0) continue; if(hz) box(s,w.y,e-s,w.h,z0,z1-z0,w.e?extM:wallM); else box(w.x,s,w.w,e-s,z0,z1-z0,w.e?extM:wallM) }
+  }
+  for(const s of SHAFTS) box(s.x,s.y,s.w,s.h,0,WH,mat('#D9CFC0'));
+  // items
+  const M=k=>mat((MATS[k]||MATS.oak).c,k==='mirror'?{roughness:0.1,metalness:0.6}:k==='white'?{roughness:0.35}:{});
+  const back=(i,t)=>backRect(i,t);
+  const rest=(i,t)=>{switch(i.back){case 'L':return{x:i.x+t,y:i.y,w:i.w-t,d:i.d};case 'R':return{x:i.x,y:i.y,w:i.w-t,d:i.d};case 'B':return{x:i.x,y:i.y,w:i.w,d:i.d-t};default:return{x:i.x,y:i.y+t,w:i.w,d:i.d-t}}};
+  for(const i of state.items){
+    if(i.cat==='p'){ if(!state.layers.panels) continue; const t=slats.clone(); t.needsUpdate=true; const hz=i.w>=i.d; t.repeat.set((hz?i.w:i.d)/40,1);
+      const ph=Math.min(i.h||H,WH); box(i.x,i.y,i.w,i.d,0,ph,new THREE.MeshStandardMaterial({map:t,roughness:0.7})); continue; }
+    const z=i.z||0, h=Math.min(i.h, Math.max(1,WH-z)); if(z>=WH) continue;
+    const m=M(i.mat);
+    switch(i.kind){
+      case 'bed':{ const b=back(i,10); box(b.x,b.y,b.w,b.d,0,Math.min(110,WH),mat('#B99B78')); const r=rest(i,10);
+        box(r.x,r.y,r.w,r.d,0,28,m); box(r.x+2,r.y+2,r.w-4,r.d-4,28,20,mat('#F4F0EA'));
+        for(const p of pillows(i)) box(p.x,p.y,p.w,p.d,48,12,mat('#FBF8F3'));
+        const far=rest(i,70); box(far.x+1,far.y+1,far.w-2,far.d-2,48,4,mat('#E6DCCB'));
+        const foot=rest(i, (i.back==='L'||i.back==='R'?i.w:i.d)-45); box(foot.x+1,foot.y+1,foot.w-2,foot.d-2,52,3,mat('#7E8350')); break;}
+      case 'sofa': case 'armchair':{ box(i.x,i.y,i.w,i.d,10,32,m); const b=back(i,20); box(b.x,b.y,b.w,b.d,10,h-10,m);
+        const arms=(i.back==='L'||i.back==='R')?[{x:i.x,y:i.y,w:i.w,d:16},{x:i.x,y:i.y+i.d-16,w:i.w,d:16}]:[{x:i.x,y:i.y,w:16,d:i.d},{x:i.x+i.w-16,y:i.y,w:16,d:i.d}];
+        for(const a of arms) box(a.x,a.y,a.w,a.d,10,i.kind==='sofa'?52:60,m);
+        box(i.x+4,i.y+4,4,4,0,10,mat('#3A3632')); box(i.x+i.w-8,i.y+i.d-8,4,4,0,10,mat('#3A3632')); box(i.x+i.w-8,i.y+4,4,4,0,10,mat('#3A3632')); box(i.x+4,i.y+i.d-8,4,4,0,10,mat('#3A3632'));
+        if(i.kind==='sofa'){const r=rest(i,20); const hz=i.back==='L'||i.back==='R'; const n=2; for(let k=0;k<n;k++){ if(hz) box(i.back==='L'?r.x+1:r.x+r.w-13,r.y+20+k*(r.d-40)/n+5,12,(r.d-40)/n-10,42,30,mat('#DCCFBC')); else box(r.x+20+k*(r.w-40)/n+5,i.back==='T'?r.y+1:r.y+r.d-13,(r.w-40)/n-10,12,42,30,mat('#DCCFBC'));}}
+        break;}
+      case 'table':{ box(i.x,i.y,i.w,i.d,z+h-3,3,m); for(const [dx,dy] of [[3,3],[i.w-7,3],[3,i.d-7],[i.w-7,i.d-7]]) box(i.x+dx,i.y+dy,4,4,z,h-3,mat('#8E6A44')); break;}
+      case 'chair':{ box(i.x+2,i.y+2,i.w-4,i.d-4,42,5,m); for(const [dx,dy] of [[3,3],[i.w-6,3],[3,i.d-6],[i.w-6,i.d-6]]) box(i.x+dx,i.y+dy,3,3,0,42,mat('#8E6A44')); const b=back(i,5); box(b.x+2,b.y+2,Math.max(3,b.w-4),Math.max(3,b.d-4),47,h-47,m); break;}
+      case 'rug': box(i.x,i.y,i.w,i.d,0,1,m,false); break;
+      case 'tv': box(i.x,i.y,i.w,i.d,z,h,mat('#1E1C1A',{roughness:0.3})); break;
+      case 'tub':{ box(i.x,i.y,i.w,i.d,0,h,m); box(i.x+7,i.y+7,i.w-14,i.d-14,h-0.5,1,mat('#DDE7EA',{roughness:0.2})); break;}
+      case 'wc':{ box(i.x+4,i.y+2,i.w-6,i.d-4,15,25,m); break;}
+      case 'base':{ box(i.x,i.y,i.w,i.d,10,h-14,m); box(i.x,i.y,i.w,i.d,0,10,mat('#BFAF98')); box(i.x,i.y,i.w,i.d,h-4,4,i.room==='bath'?mat('#F1EEE8',{roughness:0.3}):mat('#DDD5C8',{roughness:0.4}));
+        if(i.sub==='hob'){const c=[i.x+i.w/2,i.y+i.d/2]; box(c[0]-27,c[1]-27,54,54,h,0.6,mat('#1E1C1A',{roughness:0.2}))}
+        if(i.sub==='sink'){const c=[i.x+i.w/2,i.y+i.d/2], s=Math.min(i.w,i.d)-16; box(c[0]-s/2,c[1]-s/2,s,s,h,0.4,mat('#9C968E',{roughness:0.3,metalness:0.4}))}
+        // front seams
+        if(i.back){const hz=i.back==='L'||i.back==='R'; const len=hz?i.d:i.w; const n=Math.max(1,Math.round(len/60)); for(let k=1;k<n;k++){const p=k*len/n; if(hz) box(i.back==='L'?i.x+i.w-0.2:i.x-0.2,i.y+p-0.3,0.6,0.6,10,h-14,mat('#A89880'),false); else box(i.x+p-0.3,i.back==='T'?i.y+i.d-0.2:i.y-0.2,0.6,0.6,10,h-14,mat('#A89880'),false)}}
+        break;}
+      case 'wardrobe':{ box(i.x,i.y,i.w,i.d,0,h,m);
+        const hz=i.back==='L'||i.back==='R'; const len=hz?i.d:i.w; const n=Math.max(2,Math.round(len/50)); const sm=mat(i.mat==='oak'?'#9C7A52':'#CFC5B6');
+        for(let k=1;k<n;k++){const p=k*len/n; if(hz) box(i.back==='L'?i.x+i.w-0.2:i.x-0.2,i.y+p-0.3,0.6,0.6,2,h-4,sm,false); else box(i.x+p-0.3,i.back==='T'?i.y+i.d-0.2:i.y-0.2,0.6,0.6,2,h-4,sm,false)}
+        break;}
+      default: box(i.x,i.y,i.w,i.d,z,h,m);
+    }
+  }
+  // pendant lamp over the kitchen table + electrics
+  const tbl=state.items.find(i=>i.room==='kit'&&i.kind==='table');
+  if(tbl&&!cutWalls){box(tbl.x+tbl.w/2-0.5,tbl.y+tbl.d/2-0.5,1,1,175,WH-175,mat('#3A3632'),false); const sh=new THREE.Mesh(new THREE.SphereGeometry(0.17,24,12,0,Math.PI*2,0,Math.PI/2),mat('#B8653F',{side:THREE.DoubleSide})); sh.position.set((tbl.x+tbl.w/2)/100,1.6+0.17,(tbl.y+tbl.d/2)/100); group.add(sh)}
+  if(v3elec) for(const e of state.elec){ if(e.h>WH) continue; const s=new THREE.Mesh(new THREE.SphereGeometry(0.045,12,8),mat(EK[e.kind].c,{roughness:0.4,emissive:EK[e.kind].c,emissiveIntensity:0.3})); s.position.set(e.x/100,e.h/100,e.y/100); group.add(s)}
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(T)build3D()});
+</script>
