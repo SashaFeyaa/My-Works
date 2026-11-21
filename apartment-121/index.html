@@ -7,8 +7,8 @@
 /* Layout: drafting-table tool — plan sheet on the left, specification panel on the right; tabs switch between plan, 3D and schedules. */
 :root{
   --bg:#F4F0E9; --surface:#FFFDF9; --ink:#2A2520; --muted:#776C61; --line:#E2D8CA;
-  --accent:#9E5230; --accent-ink:#FFFFFF; --olive:#6E7444;
-  --wall:#2F2A25; --wall-int:#7C7065; --floor:#EEDDC3; --floor-line:#E0CAA8; --tile:#E8E3DB; --tile-line:#D1C8BB;
+  --accent:#7A2433; --accent-ink:#FFFFFF; --olive:#6E7444;
+  --wall:#2F2A25; --wall-int:#7C7065; --floor:#E7D3BC; --floor-line:#D8BFA2; --tile:#E8E3DB; --tile-line:#D1C8BB;
   --heat:#C8653F; --sel:#2F6FDB; --bad:#D23B2E; --dim:#4F6884; --win:#CFE3EE; --plan-bg:#FBF8F3; --v3bg:#EFE9E0;
   --font:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
@@ -16,12 +16,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#191714; --surface:#221F1B; --ink:#EEE6DA; --muted:#A99D8F; --line:#37312A;
-  --accent:#D98A62; --accent-ink:#1B1714; --olive:#A4AA78;
+  --accent:#E58F9C; --accent-ink:#1B1714; --olive:#A4AA78;
   --wall:#E6DCCD; --wall-int:#9C9084; --floor:#3A3027; --floor-line:#463A2E; --tile:#33302B; --tile-line:#423C35;
   --heat:#E08A62; --sel:#79A6FF; --bad:#FF6B5E; --dim:#9FB4CC; --win:#2E4652; --plan-bg:#1F1C18; --v3bg:#24211D; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#191714; --surface:#221F1B; --ink:#EEE6DA; --muted:#A99D8F; --line:#37312A;
-  --accent:#D98A62; --accent-ink:#1B1714; --olive:#A4AA78;
+  --accent:#E58F9C; --accent-ink:#1B1714; --olive:#A4AA78;
   --wall:#E6DCCD; --wall-int:#9C9084; --floor:#3A3027; --floor-line:#463A2E; --tile:#33302B; --tile-line:#423C35;
   --heat:#E08A62; --sel:#79A6FF; --bad:#FF6B5E; --dim:#9FB4CC; --win:#2E4652; --plan-bg:#1F1C18; --v3bg:#24211D; color-scheme:dark}
 *{box-sizing:border-box}
@@ -110,7 +110,7 @@ svg text{font-family:var(--font)}
   <header>
     <div>
       <h1>Квартира 121</h1>
-      <p class="sub">Планировка, мебель в реальных размерах, электрика и 3D. Тёплый бежевый, дуб, немного терракоты и оливы.</p>
+      <p class="sub">Планировка, мебель в реальных размерах, электрика и 3D. Молочные стены, табачный дуб, вишнёвый, изумрудный и голубой, матовая сталь.</p>
     </div>
     <div class="facts" id="facts"></div>
   </header>
@@ -143,6 +143,12 @@ svg text{font-family:var(--font)}
       <div class="card">
         <h3>Слои</h3>
         <div class="chips" id="layers"></div>
+      </div>
+
+      <div class="card">
+        <h3>Санузел</h3>
+        <div class="chips" id="bathmode"></div>
+        <p class="note" id="bath-note"></p>
       </div>
 
       <div class="card" id="editor">
@@ -216,14 +222,20 @@ svg text{font-family:var(--font)}
 
 <script type="module">
 /* ===================== GEOMETRY (cm; x → right, y → down; y=0 is the inner face of the facade) ===================== */
-const ROOMS=[
+/* Windows: measured from the site photos — tall windows ~1.9–2.0 m wide, sill ~40 cm, head ~262 cm, radiators under the room windows. */
+const BASE_ROOMS=[
   {id:'bed', name:'Спальня', pts:[[0,0],[299,0],[299,542],[0,542]], bti:16.2, dims:'2,99 × 5,42', lx:150, ly:430, heat:false},
-  {id:'liv', name:'Гостиная-кабинет', pts:[[309,0],[607,0],[607,425],[309,425]], bti:12.7, dims:'2,98 × 4,25', lx:520, ly:300, heat:true},
-  {id:'kit', name:'Кухня', pts:[[617,0],[865,0],[865,425],[617,425]], bti:10.5, dims:'2,48 × 4,25', lx:735, ly:290, heat:true},
-  {id:'hall', name:'Прихожая', pts:[[309,435],[865,435],[865,672],[685,672],[685,527],[309,527]], bti:7.5, dims:'', lx:520, ly:470, heat:true},
-  {id:'bath', name:'Санузел', pts:[[875,360],[1050,360],[1050,672],[875,672]], bti:5.4, dims:'1,75 × 3,12', lx:930, ly:560, heat:true, tile:true},
+  {id:'liv', name:'Гостиная-кабинет', pts:[[309,0],[607,0],[607,425],[309,425]], bti:12.7, dims:'2,98 × 4,25', lx:485, ly:300, heat:true},
+  {id:'kit', name:'Кухня', pts:[[617,0],[865,0],[865,425],[617,425]], bti:10.5, dims:'2,48 × 4,25', lx:741, ly:228, heat:true},
+  {id:'hall', name:'Прихожая', pts:[[309,435],[865,435],[865,672],[685,672],[685,527],[309,527]], bti:7.5, dims:'', lx:805, ly:600, heat:true},
 ];
-const WALLS=[
+const BATH_ROOMS={
+  combined:[{id:'bath', name:'Санузел', pts:[[875,360],[1050,360],[1050,672],[875,672]], bti:5.4, dims:'1,75 × 3,12', lx:956, ly:548, heat:true, tile:true}],
+  separate:[
+    {id:'bath', name:'Ванная', pts:[[875,360],[1050,360],[1050,560],[875,560]], bti:3.5, dims:'1,75 × 2,00', lx:935, ly:462, heat:true, tile:true},
+    {id:'wc', name:'Туалет', pts:[[875,570],[1050,570],[1050,672],[875,672]], bti:1.9, dims:'1,75 × 1,02', lx:922, ly:600, heat:true, tile:true}],
+};
+const BASE_WALLS=[
   {x:-25,y:-30,w:915,h:30,e:1},       // facade
   {x:-25,y:0,w:25,h:567,e:1},         // bedroom outer
   {x:-25,y:542,w:334,h:25,e:1},       // bedroom to stairwell
@@ -239,160 +251,227 @@ const WALLS=[
   {x:865,y:435,w:10,h:237},           // hall | bathroom
   {x:1050,y:350,w:25,h:347,e:1},      // bathroom right
 ];
-const OPENINGS=[
-  {t:'win', x:105,y:-30,w:180,h:30, sill:85, head:235, label:'окно'},
-  {t:'win', x:312,y:-30,w:292,h:30, sill:5, head:255, label:'панорамное окно', pano:1},
-  {t:'win', x:620,y:-30,w:242,h:30, sill:5, head:255, label:'панорамное окно', pano:1},
+const BATH_WALLS={combined:[], separate:[{x:875,y:560,w:175,h:10}]};
+const BASE_OPENINGS=[
+  {t:'win', x:82,y:-30,w:195,h:30, sill:40, head:262, label:'окно', pano:1},
+  {t:'win', x:335,y:-30,w:190,h:30, sill:40, head:262, label:'окно', pano:1},
+  {t:'win', x:640,y:-30,w:195,h:30, sill:40, head:262, label:'окно', pano:1},
   {t:'door', x:299,y:440,w:10,h:80, sill:0, head:210, c:[299,520], p1:[299,440], p2:[219,520]},
   {t:'door', x:455,y:425,w:80,h:10, sill:0, head:210, c:[455,425], p1:[535,425], p2:[455,345]},
   {t:'arch', x:695,y:425,w:100,h:10, sill:0, head:225},
-  {t:'door', x:865,y:590,w:10,h:70, sill:0, head:210, c:[865,660], p1:[865,590], p2:[795,660]},
   {t:'door', x:750,y:672,w:90,h:25, sill:0, head:210, c:[840,697], p1:[750,697], p2:[840,787], entry:1},
 ];
+const BATH_OPENINGS={
+  combined:[{t:'door', x:865,y:590,w:10,h:70, sill:0, head:210, c:[865,660], p1:[865,590], p2:[795,660]}],
+  separate:[
+    {t:'door', x:865,y:470,w:10,h:70, sill:0, head:210, c:[865,540], p1:[865,470], p2:[795,540]},
+    {t:'door', x:865,y:590,w:10,h:70, sill:0, head:210, c:[865,660], p1:[865,590], p2:[795,660]}],
+};
 const SHAFTS=[{x:890,y:228,w:32,h:74,label:'вентканал'},{x:1030,y:600,w:20,h:72,label:'стояк'}];
+let ROOMS,WALLS,OPENINGS;
+function setGeom(m){ROOMS=[...BASE_ROOMS,...BATH_ROOMS[m]];WALLS=[...BASE_WALLS,...BATH_WALLS[m]];OPENINGS=[...BASE_OPENINGS,...BATH_OPENINGS[m]]}
 
 /* ===================== MATERIALS & ELECTRIC KINDS ===================== */
 const MATS={
-  oak:{n:'Дуб натуральный',c:'#C9A173'}, beige:{n:'Бежевый матовый',c:'#E4D5C0'}, paint:{n:'В цвет стен',c:'#EEE6DA'},
-  linen:{n:'Лён / букле',c:'#DCCFBC'}, terracotta:{n:'Терракота',c:'#B8653F'}, olive:{n:'Олива',c:'#7E8350'},
-  white:{n:'Белый',c:'#F3F1ED'}, dark:{n:'Графит',c:'#3A3632'}, stone:{n:'Кварц, светлый',c:'#DDD5C8'},
-  rug:{n:'Шерсть, песочный',c:'#CBB894'}, mirror:{n:'Зеркало',c:'#C5D3D8'}, slats:{n:'Рейки, дуб',c:'#C9A173'},
+  oak:{n:'Дуб табачный',c:'#7E5638'}, paint:{n:'Молочный, в цвет стен',c:'#EEE6DA'}, linen:{n:'Лён молочный',c:'#DED3C3'},
+  cherry:{n:'Вишнёвый велюр',c:'#7A2433'}, emerald:{n:'Изумрудный',c:'#1F5C4E'}, blue:{n:'Пыльно-голубой',c:'#A3BCCD'},
+  pink:{n:'Пудрово-розовый',c:'#D9AAA6'}, steel:{n:'Сталь матовая',c:'#A9ACAE'},
+  white:{n:'Белый',c:'#F3F1ED'}, dark:{n:'Графит (техника)',c:'#3A3632'}, stone:{n:'Плитка молочная',c:'#E6DFD4'},
+  rug:{n:'Шерсть молочная',c:'#D8CCB6'}, mirror:{n:'Зеркало',c:'#C5D3D8'}, slats:{n:'Рейки, дуб табачный',c:'#7E5638'},
 };
-const DARKMAT=new Set(['dark','terracotta','olive']);
+const DARKMAT=new Set(['dark','cherry','emerald','oak','slats']);
 const EK={
   S:{n:'Розетка',c:'#C4563A',k:'Р'}, S2:{n:'Розетка двойная',c:'#C4563A',k:'Р2'}, SU:{n:'Розетка 2× + USB',c:'#C4563A',k:'U'},
   W:{n:'Розетка IP44 (влагозащ.)',c:'#2C84A3',k:'W'}, P:{n:'Силовой вывод / кабель',c:'#A2741A',k:'С'},
   SW:{n:'Выключатель',c:'#3E5F8A',k:'В'}, SW2:{n:'Проходной выключатель',c:'#3E5F8A',k:'П'},
   T:{n:'Терморегулятор тёплого пола',c:'#8C5A9E',k:'Т'}, L:{n:'Вывод под свет',c:'#B48C12',k:'Л'},
   LAN:{n:'Слаботочка (LAN, ТВ, домофон)',c:'#5F6B7A',k:'И'}, AC:{n:'Кондиционер',c:'#3C8D7A',k:'К'},
+  BOX:{n:'Электрощиток',c:'#1F1C19',k:'Щ'},
 };
 
 /* ===================== DEFAULT PROJECT ===================== */
 let _n=0; const nid=p=>p+(++_n).toString(36)+Math.random().toString(36).slice(2,5);
 const F=(name,room,x,y,w,d,h,mat,o={})=>({id:nid('f'),cat:'f',name,room,x,y,w,d,h,z:0,mat,...o});
-const PN=(name,room,x,y,w,d)=>({id:nid('p'),cat:'p',name,room,x,y,w,d,h:270,z:0,mat:'slats',nc:1});
+const PN=(name,room,x,y,w,d,o={})=>({id:nid('p'),cat:'p',name,room,x,y,w,d,h:270,z:0,mat:'slats',nc:1,full:1,...o});
+const LOW={h:110,full:0};
 const E=(kind,room,x,y,h,label)=>({id:nid('e'),cat:'e',kind,room,x,y,h,label});
-function defaults(){return{
-  ceiling:270,
-  items:[
-    F('Кровать 160×200','bed',0,150,210,160,45,'linen',{kind:'bed',back:'L'}),
-    F('Тумба','bed',0,105,40,45,55,'oak',{store:1}),
-    F('Тумба','bed',0,310,40,45,55,'oak',{store:1}),
-    F('Шкаф 210, фасады в цвет стен','bed',0,482,210,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
-    F('Кресло для чтения','bed',214,14,80,80,80,'olive',{kind:'armchair',back:'T'}),
-    F('Ковёр у кровати 80×200','bed',214,130,80,200,1,'rug',{kind:'rug',nc:1}),
-    F('Диван-кровать 220×100','liv',309,115,100,220,85,'terracotta',{kind:'sofa',back:'L',ext:{dx:0,dy:10,w:210,d:200,label:'разложенный 160×200'}}),
-    F('Шкаф 140','liv',309,365,140,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
-    F('ТВ-тумба 180','liv',567,140,40,180,45,'oak',{back:'R',store:1}),
-    F('ТВ 55″','liv',599,168,6,124,72,'dark',{z:95,kind:'tv',nc:1}),
-    F('Рабочий стол 120×60','liv',547,10,60,120,75,'oak',{kind:'table'}),
-    F('Рабочее кресло','liv',490,45,50,50,90,'dark',{kind:'chair',back:'L'}),
-    F('Полки над столом','liv',582,10,25,120,90,'oak',{z:120,upper:1,store:1}),
-    F('Ковёр 140×200','liv',420,125,140,200,1,'rug',{kind:'rug',nc:1}),
-    F('Ящики','kit',805,20,60,105,90,'beige',{kind:'base',back:'R',store:1}),
-    F('Варочная панель + духовка','kit',805,125,60,60,90,'beige',{kind:'base',sub:'hob',back:'R'}),
-    F('Ящики','kit',805,185,60,60,90,'beige',{kind:'base',back:'R',store:1}),
-    F('Посудомойка 45','kit',805,245,60,45,90,'beige',{kind:'base',back:'R'}),
-    F('Мойка','kit',805,290,60,60,90,'beige',{kind:'base',sub:'sink',back:'R',store:1}),
-    F('Холодильник','kit',805,360,60,62,200,'white',{back:'R'}),
-    F('Верхние шкафы','kit',830,20,35,270,90,'oak',{z:145,upper:1,store:1}),
-    F('Обеденный стол 120×70','kit',617,40,70,120,75,'oak',{kind:'table'}),
-    F('Стул','kit',692,52,45,45,85,'olive',{kind:'chair',back:'R'}),
-    F('Стул','kit',692,113,45,45,85,'olive',{kind:'chair',back:'R'}),
-    F('Стул','kit',630,165,45,45,85,'olive',{kind:'chair',back:'B'}),
-    F('Пенал-кладовая, глубина 40','kit',617,240,40,170,240,'beige',{back:'L',store:1}),
-    F('Шкаф в прихожей','hall',685,532,60,140,260,'oak',{kind:'wardrobe',back:'L',store:1}),
-    F('Комод-обувница, глубина 30','hall',400,497,260,30,95,'oak',{back:'B',store:1}),
-    F('Зеркало в пол','hall',862,455,3,90,190,'mirror',{nc:1}),
+
+function bathSet(m){
+  if(m==='separate') return {items:[
     F('Ванна 170×75','bath',877,360,170,75,58,'white',{kind:'tub'}),
-    F('Тумба с раковиной 80','bath',875,460,46,80,85,'oak',{kind:'base',sub:'sink',back:'L',store:1}),
-    F('Зеркальный шкаф','bath',875,460,14,80,70,'mirror',{z:115,upper:1,store:1}),
-    F('Стиральная машина','bath',990,445,60,60,85,'white',{back:'R'}),
-    F('Шкаф с бойлером 50 л','bath',1005,440,45,65,90,'oak',{z:140,upper:1,store:1}),
-    F('Короб инсталляции','bath',1025,560,25,112,120,'beige',{back:'R'}),
+    F('Тумба с раковиной 60','bath',925,514,60,46,85,'oak',{kind:'base',sub:'sink',back:'B',store:1}),
+    F('Зеркальный шкаф 60','bath',925,546,60,14,70,'mirror',{z:115,upper:1,store:1}),
+    F('Стиральная машина','bath',990,500,60,60,85,'white',{back:'B'}),
+    F('Шкаф с бойлером','bath',990,515,60,45,80,'oak',{z:140,upper:1,store:1}),
+    F('Полотенцесушитель','bath',1044,445,6,40,80,'steel',{z:55,nc:1}),
+    F('Короб инсталляции','wc',1025,570,25,102,120,'stone',{back:'R'}),
+    F('Шкафчик над инсталляцией','wc',1025,570,25,102,110,'oak',{z:130,upper:1,store:1}),
+    F('Унитаз подвесной','wc',970,603,55,36,40,'white',{kind:'wc',back:'R'}),
+    F('Мини-раковина 40×22','wc',900,650,40,22,85,'white',{kind:'base',sub:'sink',back:'B'}),
+    PN('Рейки у входа','hall',861,435,4,35,{bset:1}),
+  ], elec:[
+    E('W','bath',1048,492,100,'Стиральная машина: IP44, УЗО 10 мА, отдельная линия'),
+    E('W','bath',1048,530,200,'Бойлер: отдельная линия 16 А'),
+    E('W','bath',920,558,110,'Розетка у зеркала (фен, щётка)'),
+    E('L','bath',955,558,190,'Подсветка зеркального шкафа'),
+    E('P','bath',1048,468,60,'Электрический полотенцесушитель'),
+    E('P','bath',960,362,250,'Вытяжной вентилятор (короб к вентканалу)'),
+    E('P','wc',1040,600,250,'Вытяжной вентилятор в канал'),
+  ]};
+  return {items:[
+    F('Ванна 170×75','bath',877,360,170,75,58,'white',{kind:'tub'}),
+    F('Тумба с раковиной 100','bath',875,445,46,100,85,'oak',{kind:'base',sub:'sink',back:'L',store:1}),
+    F('Зеркальный шкаф 100','bath',875,445,14,100,70,'mirror',{z:115,upper:1,store:1}),
+    F('Колонна: стиральная + сушильная','bath',990,440,60,60,175,'white',{back:'R'}),
+    F('Шкаф с бойлером над колонной','bath',990,440,60,60,80,'oak',{z:180,upper:1,store:1}),
+    F('Короб инсталляции','bath',1025,510,25,162,120,'stone',{back:'R'}),
+    F('Шкафчик над инсталляцией','bath',1025,510,25,162,110,'oak',{z:130,upper:1,store:1}),
     F('Унитаз подвесной','bath',970,592,55,36,40,'white',{kind:'wc',back:'R'}),
-    F('Полотенцесушитель','bath',875,550,6,40,80,'dark',{z:55,nc:1}),
-    PN('Рейки за изголовьем','bed',0,60,4,340),
-    PN('Рейки за ТВ','liv',603,115,4,230),
-    PN('Панель у стола','kit',617,20,4,190),
-    PN('Рейки вокруг зеркала','hall',861,440,4,145),
+    F('Полотенцесушитель','bath',875,552,6,36,80,'steel',{z:55,nc:1}),
+    PN('Рейки и зеркало у входа','hall',861,435,4,155,{bset:1}),
+    F('Зеркало в пол','hall',862,455,3,90,190,'mirror',{nc:1,bset:1}),
+  ], elec:[
+    E('W','bath',1048,505,100,'Стиральная и сушильная машины: 2 розетки IP44, УЗО 10 мА'),
+    E('W','bath',1048,455,200,'Бойлер: отдельная линия 16 А'),
+    E('W','bath',877,505,120,'Розетка в зеркальном шкафу (щётка, бритва)'),
+    E('L','bath',877,480,190,'Подсветка зеркального шкафа'),
+    E('P','bath',877,570,60,'Электрический полотенцесушитель'),
+    E('P','bath',1040,620,250,'Вытяжной вентилятор в канал'),
+  ]};
+}
+
+function defaults(){const b=bathSet('combined'); return{
+  ceiling:270, bath:'combined', bathSets:{},
+  items:[
+    // bedroom
+    F('Кровать 180×200','bed',4,130,210,180,45,'oak',{kind:'bed',back:'L',acc:'blue'}),
+    F('Тумба','bed',4,85,40,45,55,'oak',{store:1}),
+    F('Тумба','bed',4,310,40,45,55,'oak',{store:1}),
+    F('Шкаф 120, молочные фасады','bed',0,365,60,117,260,'paint',{kind:'wardrobe',back:'L',store:1}),
+    F('Шкаф 215, молочные фасады','bed',0,482,215,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
+    F('Туалетный / рабочий стол 120×50','bed',249,25,50,120,75,'oak',{kind:'table'}),
+    F('Стул','bed',200,62,42,42,80,'pink',{kind:'chair',back:'L'}),
+    F('Зеркало над столом','bed',296,45,3,80,80,'mirror',{z:95,upper:1}),
+    F('Радиатор','bed',130,0,100,10,50,'white',{kind:'radiator',nc:1}),
+    F('Ковёр у кровати 75×180','bed',216,150,75,180,1,'rug',{kind:'rug',nc:1}),
+    PN('Рейки за изголовьем','bed',0,40,4,320),
+    // living
+    F('Диван-кровать 220×100','liv',309,120,100,220,85,'cherry',{kind:'sofa',back:'L',ext:{dx:0,dy:10,w:210,d:200,label:'разложенный 160×200'}}),
+    F('Шкаф 140, молочные фасады','liv',309,365,140,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
+    F('Медиатумба 200: винил, усилитель, пластинки','liv',561,160,42,200,60,'oak',{kind:'credenza',back:'R',store:1}),
+    F('ТВ 55″','liv',597,198,6,124,72,'dark',{z:100,kind:'tv',nc:1}),
+    F('Проигрыватель','liv',565,312,36,42,14,'dark',{z:60,upper:1,nc:1}),
+    F('Колонка на стойке','liv',575,132,25,25,105,'oak',{kind:'speaker'}),
+    F('Колонка на стойке','liv',575,366,25,25,105,'oak',{kind:'speaker'}),
+    F('Рабочий стол 120×60','liv',547,8,60,120,75,'oak',{kind:'table'}),
+    F('Рабочее кресло','liv',490,45,50,50,90,'emerald',{kind:'chair',back:'L'}),
+    F('Полки над столом','liv',582,8,25,120,90,'oak',{z:120,upper:1,store:1}),
+    F('Ковёр 140×200','liv',420,130,140,200,1,'rug',{kind:'rug',nc:1}),
+    F('Радиатор','liv',380,0,100,10,50,'white',{kind:'radiator',nc:1}),
+    PN('Рейки за медиазоной','liv',603,150,4,220),
+    // kitchen: cooking half at the arch, dining half at the window
+    F('Ящики 40','kit',805,200,60,40,90,'oak',{kind:'base',back:'R',store:1}),
+    F('Варочная панель + духовка','kit',805,240,60,60,90,'oak',{kind:'base',sub:'hob',back:'R'}),
+    F('Посудомойка 45','kit',805,300,60,45,90,'oak',{kind:'base',back:'R'}),
+    F('Мойка','kit',805,345,60,60,90,'oak',{kind:'base',sub:'sink',back:'R',store:1}),
+    F('Бутылочница 20','kit',805,405,60,20,90,'oak',{kind:'base',back:'R',store:1}),
+    F('Ящики, основная рабочая зона','kit',617,200,60,105,90,'oak',{kind:'base',back:'L',store:1}),
+    F('Пенал: СВЧ и кладовая','kit',617,305,60,60,240,'paint',{back:'L',store:1}),
+    F('Холодильник','kit',617,365,60,60,200,'white',{back:'L'}),
+    F('Верхние шкафы','kit',830,200,35,225,95,'paint',{z:145,upper:1,store:1}),
+    F('Верхние шкафы','kit',617,200,35,105,95,'paint',{z:145,upper:1,store:1}),
+    F('Банкетка с ящиками','kit',621,20,45,160,85,'emerald',{kind:'bench',back:'L',store:1}),
+    F('Обеденный стол 120×80','kit',671,40,80,120,75,'oak',{kind:'table'}),
+    F('Стул','kit',756,52,45,45,85,'oak',{kind:'chair',back:'R'}),
+    F('Стул','kit',756,113,45,45,85,'oak',{kind:'chair',back:'R'}),
+    PN('Панель h 110 за банкеткой','kit',617,15,4,185,LOW),
+    PN('Фартук: изумрудная плитка','kit',861,200,4,225,{mat:'emerald',z:90,h:55,full:0}),
+    PN('Фартук: изумрудная плитка','kit',617,200,4,105,{mat:'emerald',z:90,h:55,full:0}),
+    // hall
+    F('Шкаф в прихожей (щиток внутри)','hall',685,532,60,140,260,'oak',{kind:'wardrobe',back:'L',store:1}),
+    F('Антресоль над коридором','hall',309,435,346,92,45,'paint',{z:225,upper:1,store:1}),
+    PN('Панель h 110 вдоль коридора','hall',309,525,376,2,LOW),
+    PN('Панель h 110','hall',309,435,146,2,LOW),
+    PN('Панель h 110','hall',535,435,160,2,LOW),
+    PN('Панель h 110','hall',795,435,66,2,LOW),
+    ...b.items,
   ],
   elec:[
-    E('SW','hall',863,582,90,'Блок у входа: свет прихожей, свет и вентилятор санузла'),
+    E('SW','hall',863,582,90,'Блок у входа: свет прихожей, свет и вентиляция санузла'),
     E('T','hall',863,566,90,'Терморегулятор тёплого пола санузла'),
-    E('S','hall',688,655,30,'В шкафу: пылесос, сушилка для обуви'),
-    E('LAN','hall',688,548,200,'Слаботочный щиток и роутер (верх шкафа)'),
+    E('BOX','hall',715,670,180,'Электрощиток в нише справа от входа: в шкафу нужна отдельная дверца'),
+    E('S','hall',688,620,30,'В шкафу: пылесос, сушилка для обуви'),
+    E('LAN','hall',688,548,200,'Роутер и слаботочка (верх шкафа)'),
     E('S','hall',380,525,30,'Розетка в коридоре (пылесос)'),
     E('SW2','hall',548,437,90,'Проходной выключатель коридора'),
     E('SW2','hall',803,437,90,'Проходной выключатель коридора'),
     E('LAN','hall',848,670,150,'Домофон'),
     E('SW','bed',297,428,90,'Выключатель у двери: общий свет'),
-    E('SW2','bed',2,98,70,'Проходной выключатель у кровати'),
-    E('SU','bed',2,118,70,'Розетка 2× + USB у тумбы'),
-    E('L','bed',2,138,150,'Вывод под бра'),
-    E('L','bed',2,314,150,'Вывод под бра'),
-    E('SU','bed',2,334,70,'Розетка 2× + USB у тумбы'),
-    E('SW2','bed',2,354,70,'Проходной выключатель у кровати'),
-    E('S','bed',297,105,30,'Розетка у кресла (торшер)'),
+    E('SW2','bed',6,78,70,'Проходной выключатель у кровати'),
+    E('SU','bed',6,98,70,'Розетка 2× + USB у тумбы'),
+    E('L','bed',6,118,150,'Вывод под бра'),
+    E('L','bed',6,322,150,'Вывод под бра'),
+    E('SU','bed',6,340,70,'Розетка 2× + USB у тумбы'),
+    E('SW2','bed',6,358,70,'Проходной выключатель у кровати'),
+    E('S2','bed',297,40,85,'Розетки у туалетного стола (фен, лампа, ноутбук)'),
+    E('L','bed',297,85,175,'Подсветка зеркала'),
     E('AC','bed',297,250,230,'Кондиционер: питание и трасса'),
     E('L','bed',100,480,240,'Подсветка шкафа (по желанию)'),
     E('SW','liv',547,423,90,'Выключатель: общий свет и подсветка'),
     E('T','liv',563,423,90,'Терморегулятор тёплого пола'),
-    E('S2','liv',605,28,85,'Розетки над столом'),
+    E('S2','liv',605,26,85,'Розетки над столом'),
     E('LAN','liv',605,62,85,'Интернет у стола'),
     E('S2','liv',605,100,85,'Розетки над столом'),
-    E('S2','liv',605,205,110,'Розетки за телевизором'),
-    E('LAN','liv',605,232,110,'LAN и ТВ-антенна за телевизором'),
-    E('S2','liv',605,290,30,'Розетки в ТВ-тумбе'),
-    E('SU','liv',311,105,30,'Розетка у дивана'),
-    E('SU','liv',311,345,30,'Розетка у дивана'),
+    E('S2','liv',605,175,30,'Проигрыватель и усилитель (в тумбе)'),
+    E('S2','liv',605,235,110,'Розетки за телевизором'),
+    E('LAN','liv',605,262,110,'LAN и ТВ-антенна за телевизором'),
+    E('S2','liv',605,340,30,'Розетки в тумбе (приставка, сабвуфер)'),
+    E('SU','liv',311,110,30,'Розетка у дивана'),
+    E('SU','liv',311,350,30,'Розетка у дивана'),
     E('AC','liv',380,423,230,'Кондиционер над шкафом'),
-    E('P','liv',597,2,255,'Вывод под электрокарниз (по желанию)'),
-    E('SW','kit',688,423,90,'Выключатель: общий свет и подвес над столом'),
-    E('T','kit',671,423,90,'Терморегулятор тёплого пола'),
-    E('S2','kit',863,58,110,'Розетки над столешницей'),
-    E('S','kit',863,98,30,'Духовой шкаф: отдельная линия 16 А'),
-    E('S','kit',863,140,220,'Вытяжка'),
-    E('P','kit',863,160,20,'Варочная панель: кабель 3×6 мм², автомат 32 А'),
-    E('S2','kit',863,215,110,'Розетки над столешницей'),
-    E('L','kit',863,240,140,'Подсветка столешницы (блок питания в верхнем шкафу)'),
-    E('S','kit',863,305,30,'Посудомойка (розетка в модуле мойки)'),
-    E('S','kit',863,395,30,'Холодильник'),
-    E('S2','kit',619,205,90,'Розетки у стола'),
-    E('L','kit',652,100,270,'Подвесной светильник над столом'),
-    E('P','kit',855,2,255,'Вывод под электрокарниз (по желанию)'),
-    E('W','bath',1048,520,100,'Стиральная машина: IP44, УЗО 10 мА, отдельная линия'),
-    E('W','bath',1048,455,200,'Бойлер: отдельная линия 16 А'),
-    E('W','bath',877,525,110,'Розетка у зеркала (фен, щётка)'),
-    E('L','bath',877,500,185,'Подсветка зеркального шкафа'),
-    E('P','bath',877,570,60,'Электрический полотенцесушитель'),
-    E('P','bath',1040,600,250,'Вытяжной вентилятор в канал'),
+    E('P','liv',530,2,262,'Вывод под электрокарниз (по желанию)'),
+    E('SW','kit',686,423,90,'Выключатель: общий свет и подвес над столом'),
+    E('T','kit',619,195,90,'Терморегулятор тёплого пола'),
+    E('S2','kit',619,230,110,'Розетки над столешницей (рабочая зона)'),
+    E('S2','kit',619,280,110,'Розетки над столешницей (рабочая зона)'),
+    E('L','kit',619,255,140,'Подсветка столешниц (блоки питания в верхних шкафах)'),
+    E('S','kit',619,395,30,'Холодильник'),
+    E('S','kit',863,220,30,'Духовой шкаф: отдельная линия 16 А'),
+    E('S','kit',863,255,220,'Вытяжка'),
+    E('P','kit',863,275,20,'Варочная панель: кабель 3×6 мм², автомат 32 А'),
+    E('S2','kit',863,322,110,'Розетки над столешницей'),
+    E('S','kit',863,385,30,'Посудомойка (розетка в модуле мойки)'),
+    E('L','kit',711,100,270,'Подвесной светильник над столом'),
+    E('P','kit',835,2,262,'Вывод под электрокарниз (по желанию)'),
+    ...b.elec,
   ],
   layers:{furn:true,upper:true,elec:true,panels:true,heat:false,dims:true,heights:false},
 }}
-// fix the bedroom rug (declared w/d via opts)
 function fixDefaults(s){return s}
 
 const CATALOG=[
-  ['Кровать 160×200',{w:170,d:210,h:45,mat:'linen',kind:'bed',back:'T'}],
-  ['Кровать 140×200',{w:150,d:210,h:45,mat:'linen',kind:'bed',back:'T'}],
-  ['Диван-кровать 220×100',{w:220,d:100,h:85,mat:'terracotta',kind:'sofa',back:'T',ext:{dx:5,dy:0,w:210,d:210,label:'разложенный'}}],
-  ['Кресло 80×80',{w:80,d:80,h:80,mat:'olive',kind:'armchair',back:'T'}],
+  ['Кровать 180×200',{w:190,d:210,h:45,mat:'oak',kind:'bed',back:'T',acc:'blue'}],
+  ['Кровать 160×200',{w:170,d:210,h:45,mat:'oak',kind:'bed',back:'T',acc:'blue'}],
+  ['Диван-кровать 220×100',{w:220,d:100,h:85,mat:'cherry',kind:'sofa',back:'T',ext:{dx:5,dy:0,w:210,d:210,label:'разложенный'}}],
+  ['Кресло 80×80',{w:80,d:80,h:80,mat:'emerald',kind:'armchair',back:'T'}],
   ['Шкаф 100×60',{w:100,d:60,h:260,mat:'paint',kind:'wardrobe',back:'T',store:1}],
   ['Шкаф 150×60',{w:150,d:60,h:260,mat:'paint',kind:'wardrobe',back:'T',store:1}],
   ['Шкаф 200×60',{w:200,d:60,h:260,mat:'paint',kind:'wardrobe',back:'T',store:1}],
   ['Комод 100×45',{w:100,d:45,h:85,mat:'oak',back:'T',store:1}],
   ['Стеллаж 80×35',{w:80,d:35,h:200,mat:'oak',back:'T',store:1}],
   ['Тумба прикроватная 45×40',{w:45,d:40,h:55,mat:'oak',store:1}],
+  ['Туалетный столик 100×45',{w:100,d:45,h:75,mat:'oak',kind:'table'}],
   ['Рабочий стол 120×60',{w:120,d:60,h:75,mat:'oak',kind:'table'}],
   ['Рабочий стол 140×70',{w:140,d:70,h:75,mat:'oak',kind:'table'}],
   ['Обеденный стол 120×80',{w:120,d:80,h:75,mat:'oak',kind:'table'}],
   ['Круглый стол Ø90',{w:90,d:90,h:75,mat:'oak',kind:'table'}],
-  ['Стул 45×50',{w:45,d:50,h:85,mat:'olive',kind:'chair',back:'B'}],
-  ['ТВ-тумба 180×40',{w:180,d:40,h:45,mat:'oak',back:'T',store:1}],
+  ['Стул 45×50',{w:45,d:50,h:85,mat:'oak',kind:'chair',back:'B'}],
+  ['Медиатумба 200×42 (винил)',{w:200,d:42,h:60,mat:'oak',kind:'credenza',back:'T',store:1}],
+  ['Колонка на стойке',{w:25,d:25,h:105,mat:'oak',kind:'speaker'}],
+  ['Банкетка кухонная 160×45',{w:160,d:45,h:85,mat:'emerald',kind:'bench',back:'T',store:1}],
   ['Банкетка 80×35',{w:80,d:35,h:45,mat:'linen'}],
-  ['Кухонный модуль 60×60',{w:60,d:60,h:90,mat:'beige',kind:'base',back:'T',store:1}],
-  ['Пенал кухонный 60×60',{w:60,d:60,h:240,mat:'beige',back:'T',store:1}],
+  ['Кухонный модуль 60×60',{w:60,d:60,h:90,mat:'oak',kind:'base',back:'T',store:1}],
+  ['Пенал кухонный 60×60',{w:60,d:60,h:240,mat:'paint',back:'T',store:1}],
   ['Холодильник 60×65',{w:60,d:65,h:200,mat:'white',back:'T'}],
   ['Стиральная машина 60×60',{w:60,d:60,h:85,mat:'white',back:'T'}],
   ['Стиральная машина узкая 60×45',{w:60,d:45,h:85,mat:'white',back:'T'}],
@@ -400,17 +479,20 @@ const CATALOG=[
   ['Ванна 160×70',{w:160,d:70,h:58,mat:'white',kind:'tub'}],
   ['Душевой поддон 90×90',{w:90,d:90,h:10,mat:'white'}],
   ['Тумба с раковиной 60×46',{w:60,d:46,h:85,mat:'oak',kind:'base',sub:'sink',back:'T',store:1}],
+  ['Радиатор 100',{w:100,d:10,h:50,mat:'white',kind:'radiator',nc:1}],
   ['Ковёр 160×230',{w:160,d:230,h:1,mat:'rug',kind:'rug',nc:1}],
-  ['Рейки на стену, 100 см',{w:100,d:4,h:270,mat:'slats',cat:'p',nc:1}],
+  ['Рейки на стену, 100 см',{w:100,d:4,h:270,mat:'slats',cat:'p',nc:1,full:1}],
+  ['Панель h 110, 100 см',{w:100,d:2,h:110,mat:'slats',cat:'p',nc:1,full:0}],
 ];
 const ECAT=Object.keys(EK);
 
 /* ===================== STATE ===================== */
-const KEY='kv121-plan-v1';
+const KEY='kv121-plan-v2';
 let state;
 try{state=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){state=null}
 if(!state||!Array.isArray(state.items)) state=fixDefaults(defaults());
 state.layers={...defaults().layers,...(state.layers||{})};
+if(!state.bath) state.bath='combined'; if(!state.bathSets) state.bathSets={}; setGeom(state.bath);
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} renderFacts()}
 let sel=null, zoom=1, drag=null;
 const $=s=>document.querySelector(s);
@@ -467,7 +549,7 @@ function renderPlan(){
     <pattern id="tile" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" style="fill:var(--tile)"/><path d="M30 0V30H0" fill="none" style="stroke:var(--tile-line)" stroke-width="1"/></pattern>
     <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" style="fill:var(--plan-bg)"/><rect width="2" height="7" style="fill:var(--wall-int)"/></pattern>
     <pattern id="heat" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 8q4-6 8 0t8 0" fill="none" style="stroke:var(--heat)" stroke-width="1.3" opacity=".75"/></pattern>
-    <pattern id="slats" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#C9A173"/><rect width="1.4" height="5" fill="#7E5C38"/><rect width="5" height="1.4" fill="#7E5C38"/></pattern>
+    <pattern id="slats" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#7E5638"/><rect width="1.4" height="5" fill="#4A3020"/><rect width="5" height="1.4" fill="#4A3020"/></pattern>
   </defs>`;
   // floors
   for(const r of ROOMS) s+=`<path d="${polyD(r.pts)}" fill="url(#${r.tile?'tile':'lam'})"/>`;
@@ -507,7 +589,7 @@ function renderPlan(){
   }
   // panels
   if(L.panels) for(const i of state.items.filter(i=>i.cat==='p')){
-    s+=`<g class="item" data-id="${i.id}"><rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="url(#slats)" stroke="${sel===i.id?'var(--sel)':'#7E5C38'}" stroke-width="${sel===i.id?2.5:1}" style="stroke:${sel===i.id?'var(--sel)':'#7E5C38'}"/><rect x="${i.x-6}" y="${i.y-6}" width="${i.w+12}" height="${i.d+12}" fill="transparent"/></g>`;
+    s+=`<g class="item" data-id="${i.id}"><rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${i.mat==='slats'||!MATS[i.mat]?'url(#slats)':MATS[i.mat].c}" stroke="${sel===i.id?'var(--sel)':'#4A3020'}" stroke-width="${sel===i.id?2.5:1}" style="stroke:${sel===i.id?'var(--sel)':'#4A3020'}"/><rect x="${i.x-6}" y="${i.y-6}" width="${i.w+12}" height="${i.d+12}" fill="transparent"/></g>`;
   }
   // furniture
   const lower=state.items.filter(i=>i.cat==='f'&&!i.upper), upper=state.items.filter(i=>i.cat==='f'&&i.upper);
@@ -518,8 +600,8 @@ function renderPlan(){
     if(up) g+=`<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${m.c}" fill-opacity=".18" style="stroke:${stroke}" stroke-width="${isSel?2.5:1.2}" stroke-dasharray="5 3"/>`;
     else g+=`<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.d}" fill="${m.c}" ${i.kind==='rug'?'fill-opacity=".55"':''} style="stroke:${stroke}" stroke-width="${isSel||isBad?2.5:1}" rx="${i.kind==='sofa'||i.kind==='armchair'?6:1}"/>`;
     // simple glyphs
-    if(!up&&i.kind==='bed'){const b=backRect(i,10);g+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.d}" fill="#B99B78"/>`;const pl=pillows(i);for(const p of pl)g+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.d}" rx="4" fill="#F5F1EA" stroke="rgba(0,0,0,.2)"/>`}
-    if(!up&&(i.kind==='sofa'||i.kind==='armchair'||i.kind==='chair')){const b=backRect(i,i.kind==='chair'?6:20);g+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.d}" fill="rgba(0,0,0,.18)"/>`}
+    if(!up&&i.kind==='bed'){const b=backRect(i,10);g+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.d}" fill="#5E3F28"/>`;const pl=pillows(i);for(const p of pl)g+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.d}" rx="4" fill="#F5F1EA" stroke="rgba(0,0,0,.2)"/>`}
+    if(!up&&(i.kind==='sofa'||i.kind==='armchair'||i.kind==='chair'||i.kind==='bench')){const b=backRect(i,i.kind==='chair'?6:i.kind==='bench'?10:20);g+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.d}" fill="rgba(0,0,0,.18)"/>`}
     if(!up&&i.sub==='hob'){const c=[i.x+i.w/2,i.y+i.d/2];g+=`<rect x="${c[0]-26}" y="${c[1]-26}" width="52" height="52" rx="3" fill="#2B2826"/>${[[-12,-12],[12,-12],[-12,12],[12,12]].map(([a,b])=>`<circle cx="${c[0]+a}" cy="${c[1]+b}" r="8" fill="none" stroke="#777" stroke-width="1.5"/>`).join('')}`}
     if(!up&&i.sub==='sink'){const c=[i.x+i.w/2,i.y+i.d/2];const sw=Math.min(i.w,i.d)-14;g+=`<rect x="${c[0]-sw/2}" y="${c[1]-sw/2}" width="${sw}" height="${sw}" rx="8" fill="#E9E6E1" stroke="#8C877F"/>`}
     if(!up&&i.kind==='tub'){g+=`<rect x="${i.x+6}" y="${i.y+6}" width="${i.w-12}" height="${i.d-12}" rx="22" fill="#FFFFFF" stroke="#A9A39A"/>`}
@@ -681,7 +763,20 @@ function renderLayers(){
 }
 $('#layers').addEventListener('click',e=>{const b=e.target.closest('[data-layer]'); if(!b) return; const k=b.dataset.layer; state.layers[k]=!state.layers[k]; save(); renderLayers(); renderPlan()});
 $('#add-what').innerHTML=`<optgroup label="Мебель и техника">${CATALOG.map((c,i)=>`<option value="c${i}">${c[0]}</option>`).join('')}</optgroup><optgroup label="Электрика">${ECAT.map(k=>`<option value="e${k}">${EK[k].n}</option>`).join('')}</optgroup>`;
-$('#add-room').innerHTML=ROOMS.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+function buildRoomSelect(){$('#add-room').innerHTML=ROOMS.map(r=>`<option value="${r.id}">${r.name}</option>`).join('')}
+buildRoomSelect();
+const BATH_NOTE={combined:'Одна комната 5,4 м²: ванна, подвесной унитаз, колонна из стиральной и сушильной машин, тумба 100 см и шкаф над инсталляцией. Нужна перепланировка: сносится перегородка.',
+  separate:'Как у застройщика: ванная 3,5 м² и туалет 1,9 м². Всё помещается, но сушильная машина и тумба шире 60 см уже не встают.'};
+function renderBathMode(){$('#bathmode').innerHTML=[['combined','Совмещённый'],['separate','Раздельный']].map(([k,n])=>`<button class="chip" data-bath="${k}" aria-pressed="${state.bath===k}">${n}</button>`).join(''); $('#bath-note').textContent=BATH_NOTE[state.bath]}
+$('#bathmode').addEventListener('click',e=>{const b=e.target.closest('[data-bath]'); if(b) setBath(b.dataset.bath)});
+function setBath(m){
+  if(state.bath===m) return;
+  const isB=i=>i.room==='bath'||i.room==='wc'||i.bset;
+  state.bathSets[state.bath]={items:state.items.filter(isB),elec:state.elec.filter(isB)};
+  state.items=state.items.filter(i=>!isB(i)); state.elec=state.elec.filter(i=>!isB(i));
+  const set=state.bathSets[m]||bathSet(m); state.items.push(...set.items); state.elec.push(...set.elec);
+  state.bath=m; setGeom(m); sel=null; save(); buildRoomSelect(); renderAll(); if(T) build3D();
+}
 $('#add-btn').onclick=()=>{
   const v=$('#add-what').value, room=$('#add-room').value, r=ROOMS.find(x=>x.id===room);
   const xs=r.pts.map(p=>p[0]), ys=r.pts.map(p=>p[1]);
@@ -694,7 +789,7 @@ $('#add-btn').onclick=()=>{
   sel=it.id; save(); renderPlan(); renderEditor();
 };
 const ceil=$('#ceiling'); ceil.value=state.ceiling;
-ceil.addEventListener('input',()=>{const v=parseFloat(ceil.value); if(v>=200&&v<=400){state.ceiling=v; for(const i of state.items) if(i.cat==='p') i.h=v; save()}});
+ceil.addEventListener('input',()=>{const v=parseFloat(ceil.value); if(v>=200&&v<=400){state.ceiling=v; for(const i of state.items) if(i.cat==='p'&&i.full) i.h=v; save()}});
 // export / import
 $('#exp-btn').onclick=()=>{
   $('#io').hidden=false; $('#io-text').value=JSON.stringify({ceiling:state.ceiling,items:state.items,elec:state.elec},null,1);
@@ -767,21 +862,21 @@ function renderFurn(){
     <div class="stat"><b>${fmt(vol,1)} м³</b><span>объём закрытого хранения</span></div>
     <div class="stat"><b>${fmt(tallLen,1)} м</b><span>шкафов в пол-потолок по длине</span></div>
     <div class="stat"><b>${state.items.filter(i=>i.cat==='f').length}</b><span>предметов мебели и техники</span></div>
-    <div class="stat"><b>${fmt(state.items.filter(i=>i.cat==='p').reduce((a,i)=>a+Math.max(i.w,i.d)*state.ceiling/1e4,0),1)} м²</b><span>деревянных панелей на стенах</span></div>
+    <div class="stat"><b>${fmt(state.items.filter(i=>i.cat==='p').reduce((a,i)=>a+Math.max(i.w,i.d)*i.h/1e4,0),1)} м²</b><span>деревянных панелей на стенах</span></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>Где хранить</h3><div class="note prose">
   <ul>
-    <li><b>Прихожая.</b> Шкаф 60 см в нише у входа, от пола до потолка: верхняя одежда, обувь внизу, пылесос и сушилка для обуви на розетке внутри. Вдоль коридора комод глубиной 30 см: проход остаётся 62 см. Над коридором можно сделать антресоль под сезонные вещи.</li>
-    <li><b>Спальня.</b> Шкаф 210 см вдоль стены у двери, фасады в цвет стен, чтобы он растворялся. Можно взять кровать с подъёмным механизмом, это ещё около 1 м³.</li>
-    <li><b>Гостиная-кабинет.</b> Шкаф 140 см у двери для вещей и белья для гостей. ТВ-тумба и полки над столом под документы.</li>
-    <li><b>Кухня.</b> Пенал-кладовая глубиной 40 см на всю высоту для круп и банок. Верхние шкафы до потолка.</li>
-    <li><b>Санузел.</b> Шкаф с бойлером над стиральной машиной, зеркальный шкаф над раковиной, полка на коробе инсталляции, ниша над ванной.</li>
+    <li><b>Прихожая.</b> Шкаф от пола до потолка в нише у входа: верхняя одежда, обувь, пылесос. Справа от двери ниша под электрощиток, поэтому у шкафа с этой стороны своя дверца. Над коридором антресоль под сезонные вещи. Комода больше нет: коридор около 92 см, с комодом оставалось бы 62.</li>
+    <li><b>Спальня.</b> Угловой шкаф 215 + 120 см до потолка, молочные фасады в цвет стен. Можно взять кровать с подъёмным механизмом, это ещё около 1 м³.</li>
+    <li><b>Гостиная-кабинет.</b> Шкаф 140 см у двери под вещи и бельё для гостей. Медиатумба на ножках с отсеками под пластинки (внутренняя глубина от 33 см). Полки над столом под документы.</li>
+    <li><b>Кухня.</b> Два ряда нижних шкафов, пенал до потолка, верхние шкафы, банкетка с ящиками в столовой зоне.</li>
+    <li><b>Санузел.</b> Шкаф с бойлером, зеркальный шкаф, шкафчик над инсталляцией. В совмещённом варианте вместо одной стиральной машины колонна со стиральной и сушильной.</li>
   </ul></div></div>`;
   for(const r of ROOMS){
     const list=state.items.filter(i=>i.room===r.id&&(i.cat==='f'||i.cat==='p'));
     if(!list.length) continue;
     h+=`<h3 class="room-h">${r.name} · ${fmt(r.bti)} м²</h3><div class="tbl"><table><thead><tr><th>Предмет</th><th class="num">Ш × Г × В, см</th><th class="num">От пола</th><th>Материал</th></tr></thead><tbody>`+
-      list.map(i=>`<tr><td>${esc(i.name)}</td><td class="num">${Math.round(Math.max(i.w,i.d))} × ${Math.round(Math.min(i.w,i.d))} × ${Math.round(i.cat==='p'?state.ceiling:i.h)}</td><td class="num">${i.z||0}</td><td><span style="display:inline-flex;gap:6px;align-items:center"><i class="dot" style="background:${(MATS[i.mat]||MATS.oak).c};border:1px solid var(--line)"></i>${(MATS[i.mat]||MATS.oak).n}</span></td></tr>`).join('')+`</tbody></table></div>`;
+      list.map(i=>`<tr><td>${esc(i.name)}</td><td class="num">${Math.round(Math.max(i.w,i.d))} × ${Math.round(Math.min(i.w,i.d))} × ${Math.round(i.h)}</td><td class="num">${i.z||0}</td><td><span style="display:inline-flex;gap:6px;align-items:center"><i class="dot" style="background:${(MATS[i.mat]||MATS.oak).c};border:1px solid var(--line)"></i>${(MATS[i.mat]||MATS.oak).n}</span></td></tr>`).join('')+`</tbody></table></div>`;
   }
   $('#tab-furn').innerHTML=h;
 }
@@ -789,42 +884,78 @@ function renderFurn(){
 /* ===================== CONCEPT TAB ===================== */
 function renderConcept(){
   const sw=[
-    ['#EFE7DB','Стены','Тёплый молочный, одинаковый во всей квартире. Ориентир NCS S 0804-Y30R.'],
-    ['#C9A173','Дерево','Дуб натуральный. Ламинат, рейки и шпон фасадов в одном тоне: подбирать по одному образцу.'],
-    ['#E4D5C0','Бежевый','Кухонные фасады, короба, плитка в санузле.'],
-    ['#DCCFBC','Текстиль','Лён и букле: кровать, шторы, пледы.'],
-    ['#B8653F','Терракота','Главный акцент: диван, подушки, плитка-ниша в ванной.'],
-    ['#7E8350','Олива','Второй акцент: стулья на кухне, кресло, растения.'],
-    ['#3A3632','Графит','Мелочи: ручки, светильники, смеситель, карниз.'],
+    ['#EFE7DB','Стены','Тёплый молочный во всей квартире, обои или краска одного тона. Ориентир NCS S 0804-Y30R.'],
+    ['#7E5638','Табачный дуб','Рейки, панели, тумбы, столы, низ кухни, шкаф в прихожей. Пол того же оттенка, на полтона светлее.'],
+    ['#EEE6DA','Фасады шкафов','Молочные, в цвет стен. Большие шкафы растворяются в стене и не съедают место.'],
+    ['#7A2433','Вишнёвый','Акцент гостиной: велюровый диван, абажур, рамки для обложек пластинок.'],
+    ['#1F5C4E','Изумрудный','Кухня: фартук из глянцевой плитки и банкетка. Повторяется в рабочем кресле.'],
+    ['#A3BCCD','Пыльно-голубой','Спальня и ванная: покрывало, шторы, плитка вокруг ванны.'],
+    ['#D9AAA6','Пудровый розовый','Совсем немного в спальне: стул у туалетного стола, подушки.'],
+    ['#A9ACAE','Матовая сталь','Смесители, ручки, ножки, карнизы. Сатин или браш: на них почти не видно отпечатков.'],
   ];
   $('#tab-concept').innerHTML=`
   <div class="sw">${sw.map(([c,n,t])=>`<div><i style="background:${c}"></i><p><b>${n}</b>${t}</p></div>`).join('')}</div>
   <div class="cols" style="margin-top:16px">
-    <div class="card prose"><h3>Общий принцип</h3>
-      <p>Светлый тёплый фон, одно дерево по всей квартире и два акцентных цвета, которые повторяются из комнаты в комнату. Серого почти нет: даже металл выбирайте графитовым или латунным. Рейки ставим только на одну стену в комнате, чтобы они были акцентом, а не обшивкой.</p>
-      <h4>Панорамные окна</h4>
-      <ul><li>Карниз в потолочной нише или скрытый профиль, шторы от пола до потолка. Под электрокарниз заложен вывод.</li>
-      <li>У стекла не ставим высокую мебель. Рабочий стол стоит боком к окну, свет падает слева.</li>
-      <li>Если батарей нет, вдоль стекла можно поставить внутрипольный конвектор (ширина около 25 см): окна не будут запотевать.</li></ul>
+    <div class="card prose"><h3>Стиль: современный с отсылками к 70-м</h3>
+      <p>База современная и простая: гладкие фасады, тонкие стальные ручки, никакой лепнины. Семидесятые читаются по нескольким приёмам, и больше не нужно:</p>
+      <ul>
+        <li>тёплое тёмное дерево с заметной текстурой;</li>
+        <li>скруглённые формы: диван, зеркала, арка на кухню, круглый абажур;</li>
+        <li>велюр и вельвет в мягкой мебели;</li>
+        <li>молочные шары-светильники и торшеры с тканевым абажуром;</li>
+        <li>глянцевая плитка ручной формовки на кухне;</li>
+        <li>медиатумба на ножках с пластинками и проигрывателем.</li>
+      </ul>
+      <p>Цвета повторяются из комнаты в комнату: вишня в гостиной, изумруд на кухне и в кресле, голубой в спальне и ванной. Поэтому квартира выглядит цельной, хотя у каждой комнаты свой акцент.</p>
     </div>
-    <div class="card prose"><h3>По комнатам</h3>
-      <h4>Спальня</h4><p>Рейки за изголовьем, кровать в льне, кресло оливкового цвета у окна. Бра на выводах, общий свет включается проходным выключателем от двери и от кровати.</p>
-      <h4>Гостиная-кабинет</h4><p>Терракотовый диван-кровать, напротив стена с рейками и ТВ. Рабочее место у окна с полками над столом. В разложенном виде диван оставляет до ТВ-тумбы проход около 50 см.</p>
-      <h4>Кухня</h4><p>Арка вместо двери. Нижние фасады бежевые матовые, верхние в дубе до потолка, фартук из бежевой плитки ручной формовки. Варочная панель рядом с вентканалом, мойка ближе к стояку. Стол у стены с деревянной панелью, оливковые стулья.</p>
-      <h4>Санузел</h4><p>Бежевая плитка крупного формата, тумба в дубе, терракотовая плитка в нише над ванной. Инсталляция у стояка, стиральная машина и шкаф с бойлером напротив тумбы. Проход между ними около 70 см.</p>
-      <h4>Прихожая</h4><p>Шкаф в дубе в нише у входа, зеркало в пол на стене с рейками, узкий комод вдоль коридора.</p>
+    <div class="card prose"><h3>Дерево</h3>
+      <p>Скорее всего, вы имеете в виду Egger: это производитель ЛДСП и плёнок с большой коллекцией дубов. Нужный тон обычно называют «табачный дуб», например «Дуб Галифакс табачный» (H1181 ST37). Он тёплый, с рыжинкой, не уходит в чёрный и хорошо держится на молочных стенах.</p>
+      <p>Попросите образцы ЛДСП, плёнки для реек и ламината и сравните их днём у окна: один и тот же «дуб» в разных материалах выглядит по-разному. Пол я сделала на полтона светлее мебели, чтобы комнаты не темнели и на полу меньше была видна пыль.</p>
+    </div>
+    <div class="card prose"><h3>Где дерево на стенах</h3>
+      <p>Панели стоят там, где стены пачкаются и затираются, плюс по одной акцентной стене в комнате.</p>
+      <ul>
+        <li><b>Прихожая:</b> панель высотой 110 см вдоль всего коридора и между дверями, рейки во всю высоту вокруг зеркала у входа. Шкаф у входа тоже в дубе.</li>
+        <li><b>Кухня:</b> панель 110 см за банкеткой, куда опираются спинами и руками.</li>
+        <li><b>Спальня:</b> рейки во всю высоту за изголовьем.</li>
+        <li><b>Гостиная:</b> рейки за медиатумбой и телевизором.</li>
+      </ul>
+      <p>Остальные стены под обои. Высоту и длину любой панели можно поменять на плане.</p>
+    </div>
+    <div class="card prose"><h3>Шкафы и фасады</h3>
+      <p>Одна система на всю квартиру. Большие шкафы до потолка с молочными фасадами в цвет стен. Отдельно стоящая мебель (тумбы, столы, медиатумба, низ кухни) и шкаф в прихожей в табачном дубе. Вся фурнитура из матовой стали. На кухне низ тёмный, верх светлый: так кухня не давит.</p>
+    </div>
+    <div class="card prose"><h3>Окна</h3>
+      <ul>
+        <li>По фото окна высокие: около 1,9–2,0 м в ширину, подоконник примерно 40 см, верх почти у потолка. Под окнами в комнатах стоят радиаторы. На кухне на фото радиатора не видно: проверьте.</li>
+        <li>Карниз лучше скрытый, в потолке, шторы от потолка до пола. Это зрительно поднимет комнату.</li>
+        <li>Радиаторы мебелью не закрываем. Рабочие столы стоят боком к окну, свет падает слева.</li>
+      </ul>
+    </div>
+    <div class="card prose"><h3>Как не переплатить</h3>
+      <h4>Можно экономить</h4>
+      <ul>
+        <li>Корпуса шкафов из стандартных модулей ЛДСП, на заказ только фасады.</li>
+        <li>Рейки из МДФ в плёнке под дуб вместо массива.</li>
+        <li>Мягкая мебель из массмаркета: цвет и ткань важнее бренда.</li>
+        <li>Винтаж с сайтов объявлений: кресла, светильники, проигрыватель, тумбы. Так 70-е получаются дешевле и живее.</li>
+      </ul>
+      <h4>Лучше не экономить</h4>
+      <ul>
+        <li>Инсталляция, смесители и гидроизоляция.</li>
+        <li>Петли и направляющие шкафов и кухни.</li>
+        <li>Матрас.</li>
+        <li>Электрика и щиток.</li>
+      </ul>
     </div>
     <div class="card prose"><h3>Что проверить до ремонта</h3>
       <ul>
-        <li>Размеры взяты с плана БТИ. Ширина кухни по площади выходит 2,48 м, хотя у коридора подписано 2,58. Санузел и прихожая на плане упрощены. Перемерьте их рулеткой и поправьте в редакторе.</li>
+        <li>Размеры взяты с плана БТИ, окна по фото. Санузел и прихожая на плане упрощены. Перемерьте рулеткой и поправьте в редакторе.</li>
         <li>Высота потолка принята 270 см. Её можно поменять во вкладке «План».</li>
-        <li>Объединение ванной и туалета и расширение кухонного проёма под арку — это перепланировка. Сначала нужно проверить, не несущие ли стены, и согласовать работы. Гидроизоляцию санузла делать по всему полу.</li>
-        <li>Где находится электрощиток, на плане не видно. Покажите, и я привяжу к нему трассы.</li>
-        <li>Тёплый пол не кладут под шкафы, кухню и ванну. Посмотрите слой «Тёплый пол»: штриховкой отмечены места, где обогрев не нужен.</li>
+        <li>Совмещение санузла и расширение проёма под арку — это перепланировка. Проверьте, не несущие ли стены, и согласуйте работы.</li>
+        <li>Справа от входной двери ниша, судя по фото, под электрощиток. Рядом труба и гофра: уточните у застройщика, что это.</li>
+        <li>Тёплый пол не кладут под шкафы, кухню и ванну. Посмотрите слой «Тёплый пол».</li>
       </ul>
-    </div>
-    <div class="card prose"><h3>Если нужен фотореалистичный рендер</h3>
-      <p>Этот план годится для расстановки, замеров и задания электрику. Для «живых» картинок с материалами можно перенести размеры отсюда в Planoplan (русскоязычный, рендеры в браузере) или в бесплатный Sweet Home 3D. Все размеры есть во вкладках «Мебель и хранение» и «Электрика».</p>
     </div>
   </div>`;
 }
@@ -842,7 +973,7 @@ $('#tabs').addEventListener('click',e=>{
   try{localStorage.setItem(KEY+'-tab',activeTab)}catch(e){}
 });
 
-function renderAll(){renderFacts();renderLayers();renderPlan();renderEditor();renderConcept();if(activeTab==='elec')renderElec();if(activeTab==='furn')renderFurn()}
+function renderAll(){renderBathMode();renderFacts();renderLayers();renderPlan();renderEditor();renderConcept();if(activeTab==='elec')renderElec();if(activeTab==='furn')renderFurn()}
 renderAll();
 try{const t=localStorage.getItem(KEY+'-tab'); if(t&&t!=='plan'){const b=document.querySelector(`#tabs [data-tab="${t}"]`); if(b) b.click()}}catch(e){}
 
@@ -901,9 +1032,9 @@ function build3D(){
     const me=new THREE.Mesh(new THREE.BoxGeometry(w/100,h/100,d/100),m); me.position.set((x+w/2)/100,(z+h/2)/100,(y+d/2)/100);
     me.castShadow=cast; me.receiveShadow=true; group.add(me); return me; };
   // textures
-  const lam=canvasTex('lam',512,(g,s)=>{const rows=5,ph=s/rows;for(let r=0;r<rows;r++){let x=-(r*97%s);while(x<s){const len=s*0.55+((r*37+x)%60);const l=58+((r*13+Math.abs(x))%9);g.fillStyle=`hsl(33,42%,${l}%)`;g.fillRect(x,r*ph,len,ph);for(let k=0;k<14;k++){g.strokeStyle=`rgba(110,75,40,${0.05+((k*7)%5)/100})`;g.beginPath();const yy=r*ph+((k*29)%ph);g.moveTo(x,yy);g.bezierCurveTo(x+len*0.3,yy+3,x+len*0.6,yy-3,x+len,yy+1);g.stroke()}g.fillStyle='rgba(90,60,30,.35)';g.fillRect(x,r*ph,2,ph);x+=len}g.fillStyle='rgba(90,60,30,.3)';g.fillRect(0,r*ph,s,1.5)}});
+  const lam=canvasTex('lam',512,(g,s)=>{const rows=5,ph=s/rows;for(let r=0;r<rows;r++){let x=-(r*97%s);while(x<s){const len=s*0.55+((r*37+x)%60);const l=39+((r*13+Math.abs(x))%7);g.fillStyle=`hsl(27,25%,${l}%)`;g.fillRect(x,r*ph,len,ph);for(let k=0;k<14;k++){g.strokeStyle=`rgba(35,20,10,${0.05+((k*7)%5)/100})`;g.beginPath();const yy=r*ph+((k*29)%ph);g.moveTo(x,yy);g.bezierCurveTo(x+len*0.3,yy+3,x+len*0.6,yy-3,x+len,yy+1);g.stroke()}g.fillStyle='rgba(30,18,8,.45)';g.fillRect(x,r*ph,2,ph);x+=len}g.fillStyle='rgba(30,18,8,.4)';g.fillRect(0,r*ph,s,1.5)}});
   const tile=canvasTex('tile',256,(g,s)=>{g.fillStyle='#E6DED2';g.fillRect(0,0,s,s);g.strokeStyle='#CFC4B4';g.lineWidth=3;g.strokeRect(0,0,s,s)});
-  const slats=canvasTex('slats',256,(g,s)=>{g.fillStyle='#6A4A2C';g.fillRect(0,0,s,s);for(let i=0;i<8;i++){g.fillStyle=`hsl(33,40%,${57+(i%3)*2}%)`;g.fillRect(i*32+5,0,22,s)}});
+  const slats=canvasTex('slats',256,(g,s)=>{g.fillStyle='#3A2618';g.fillRect(0,0,s,s);for(let i=0;i<8;i++){g.fillStyle=`hsl(25,36%,${33+(i%3)*2}%)`;g.fillRect(i*32+5,0,22,s)}});
   // floors
   for(const r of ROOMS){
     const sh=new THREE.Shape(r.pts.map(p=>new THREE.Vector2(p[0]/100,p[1]/100)));
@@ -912,7 +1043,7 @@ function build3D(){
     const me=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:t,roughness:0.75,side:THREE.DoubleSide})); me.receiveShadow=true; group.add(me);
   }
   // walls with openings
-  const wallM=mat('#EFE7DB',{roughness:0.95}), extM=mat('#E5DCCD',{roughness:0.95}), glassM=mat('#BFD8E6',{transparent:true,opacity:0.22,roughness:0.05,metalness:0.1}), frameM=mat('#3A3632');
+  const wallM=mat('#EFE7DB',{roughness:0.95}), extM=mat('#E5DCCD',{roughness:0.95}), glassM=mat('#BFD8E6',{transparent:true,opacity:0.22,roughness:0.05,metalness:0.1}), frameM=mat('#F2F1EE',{roughness:0.5});
   const ovr=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
   for(const w of WALLS){
     const hz=w.w>=w.h, a0=hz?w.x:w.y, a1=hz?w.x+w.w:w.y+w.h;
@@ -929,44 +1060,49 @@ function build3D(){
   const back=(i,t)=>backRect(i,t);
   const rest=(i,t)=>{switch(i.back){case 'L':return{x:i.x+t,y:i.y,w:i.w-t,d:i.d};case 'R':return{x:i.x,y:i.y,w:i.w-t,d:i.d};case 'B':return{x:i.x,y:i.y,w:i.w,d:i.d-t};default:return{x:i.x,y:i.y+t,w:i.w,d:i.d-t}}};
   for(const i of state.items){
-    if(i.cat==='p'){ if(!state.layers.panels) continue; const t=slats.clone(); t.needsUpdate=true; const hz=i.w>=i.d; t.repeat.set((hz?i.w:i.d)/40,1);
-      const ph=Math.min(i.h||H,WH); box(i.x,i.y,i.w,i.d,0,ph,new THREE.MeshStandardMaterial({map:t,roughness:0.7})); continue; }
+    if(i.cat==='p'){ if(!state.layers.panels) continue; const pz=i.z||0, ph=Math.min(i.h||H,WH-pz); if(ph<=0) continue;
+      let pm; if(i.mat==='slats'||!MATS[i.mat]){const t=slats.clone(); t.needsUpdate=true; const hz=i.w>=i.d; t.repeat.set((hz?i.w:i.d)/40,1); pm=new THREE.MeshStandardMaterial({map:t,roughness:0.7})} else pm=M(i.mat);
+      box(i.x,i.y,i.w,i.d,pz,ph,pm); continue; }
     const z=i.z||0, h=Math.min(i.h, Math.max(1,WH-z)); if(z>=WH) continue;
     const m=M(i.mat);
     switch(i.kind){
-      case 'bed':{ const b=back(i,10); box(b.x,b.y,b.w,b.d,0,Math.min(110,WH),mat('#B99B78')); const r=rest(i,10);
+      case 'bed':{ const b=back(i,10); box(b.x,b.y,b.w,b.d,0,Math.min(110,WH),m); const r=rest(i,10);
         box(r.x,r.y,r.w,r.d,0,28,m); box(r.x+2,r.y+2,r.w-4,r.d-4,28,20,mat('#F4F0EA'));
         for(const p of pillows(i)) box(p.x,p.y,p.w,p.d,48,12,mat('#FBF8F3'));
-        const far=rest(i,70); box(far.x+1,far.y+1,far.w-2,far.d-2,48,4,mat('#E6DCCB'));
-        const foot=rest(i, (i.back==='L'||i.back==='R'?i.w:i.d)-45); box(foot.x+1,foot.y+1,foot.w-2,foot.d-2,52,3,mat('#7E8350')); break;}
+        const far=rest(i,70); box(far.x+1,far.y+1,far.w-2,far.d-2,48,4,mat((MATS[i.acc]||MATS.linen).c));
+        const foot=rest(i, (i.back==='L'||i.back==='R'?i.w:i.d)-45); box(foot.x+1,foot.y+1,foot.w-2,foot.d-2,52,3,mat('#D9AAA6')); break;}
       case 'sofa': case 'armchair':{ box(i.x,i.y,i.w,i.d,10,32,m); const b=back(i,20); box(b.x,b.y,b.w,b.d,10,h-10,m);
         const arms=(i.back==='L'||i.back==='R')?[{x:i.x,y:i.y,w:i.w,d:16},{x:i.x,y:i.y+i.d-16,w:i.w,d:16}]:[{x:i.x,y:i.y,w:16,d:i.d},{x:i.x+i.w-16,y:i.y,w:16,d:i.d}];
         for(const a of arms) box(a.x,a.y,a.w,a.d,10,i.kind==='sofa'?52:60,m);
-        box(i.x+4,i.y+4,4,4,0,10,mat('#3A3632')); box(i.x+i.w-8,i.y+i.d-8,4,4,0,10,mat('#3A3632')); box(i.x+i.w-8,i.y+4,4,4,0,10,mat('#3A3632')); box(i.x+4,i.y+i.d-8,4,4,0,10,mat('#3A3632'));
+        box(i.x+4,i.y+4,4,4,0,10,mat('#A9ACAE',{metalness:0.5,roughness:0.45})); box(i.x+i.w-8,i.y+i.d-8,4,4,0,10,mat('#A9ACAE',{metalness:0.5,roughness:0.45})); box(i.x+i.w-8,i.y+4,4,4,0,10,mat('#A9ACAE',{metalness:0.5,roughness:0.45})); box(i.x+4,i.y+i.d-8,4,4,0,10,mat('#A9ACAE',{metalness:0.5,roughness:0.45}));
         if(i.kind==='sofa'){const r=rest(i,20); const hz=i.back==='L'||i.back==='R'; const n=2; for(let k=0;k<n;k++){ if(hz) box(i.back==='L'?r.x+1:r.x+r.w-13,r.y+20+k*(r.d-40)/n+5,12,(r.d-40)/n-10,42,30,mat('#DCCFBC')); else box(r.x+20+k*(r.w-40)/n+5,i.back==='T'?r.y+1:r.y+r.d-13,(r.w-40)/n-10,12,42,30,mat('#DCCFBC'));}}
         break;}
-      case 'table':{ box(i.x,i.y,i.w,i.d,z+h-3,3,m); for(const [dx,dy] of [[3,3],[i.w-7,3],[3,i.d-7],[i.w-7,i.d-7]]) box(i.x+dx,i.y+dy,4,4,z,h-3,mat('#8E6A44')); break;}
-      case 'chair':{ box(i.x+2,i.y+2,i.w-4,i.d-4,42,5,m); for(const [dx,dy] of [[3,3],[i.w-6,3],[3,i.d-6],[i.w-6,i.d-6]]) box(i.x+dx,i.y+dy,3,3,0,42,mat('#8E6A44')); const b=back(i,5); box(b.x+2,b.y+2,Math.max(3,b.w-4),Math.max(3,b.d-4),47,h-47,m); break;}
+      case 'table':{ box(i.x,i.y,i.w,i.d,z+h-3,3,m); for(const [dx,dy] of [[3,3],[i.w-7,3],[3,i.d-7],[i.w-7,i.d-7]]) box(i.x+dx,i.y+dy,4,4,z,h-3,mat('#4E3322')); break;}
+      case 'chair':{ box(i.x+2,i.y+2,i.w-4,i.d-4,42,5,m); for(const [dx,dy] of [[3,3],[i.w-6,3],[3,i.d-6],[i.w-6,i.d-6]]) box(i.x+dx,i.y+dy,3,3,0,42,mat('#4E3322')); const b=back(i,5); box(b.x+2,b.y+2,Math.max(3,b.w-4),Math.max(3,b.d-4),47,h-47,m); break;}
       case 'rug': box(i.x,i.y,i.w,i.d,0,1,m,false); break;
       case 'tv': box(i.x,i.y,i.w,i.d,z,h,mat('#1E1C1A',{roughness:0.3})); break;
       case 'tub':{ box(i.x,i.y,i.w,i.d,0,h,m); box(i.x+7,i.y+7,i.w-14,i.d-14,h-0.5,1,mat('#DDE7EA',{roughness:0.2})); break;}
       case 'wc':{ box(i.x+4,i.y+2,i.w-6,i.d-4,15,25,m); break;}
-      case 'base':{ box(i.x,i.y,i.w,i.d,10,h-14,m); box(i.x,i.y,i.w,i.d,0,10,mat('#BFAF98')); box(i.x,i.y,i.w,i.d,h-4,4,i.room==='bath'?mat('#F1EEE8',{roughness:0.3}):mat('#DDD5C8',{roughness:0.4}));
+      case 'base':{ box(i.x,i.y,i.w,i.d,10,h-14,m); box(i.x,i.y,i.w,i.d,0,10,mat('#3E2A1C')); box(i.x,i.y,i.w,i.d,h-4,4,i.room==='bath'?mat('#F1EEE8',{roughness:0.3}):mat('#DDD5C8',{roughness:0.4}));
         if(i.sub==='hob'){const c=[i.x+i.w/2,i.y+i.d/2]; box(c[0]-27,c[1]-27,54,54,h,0.6,mat('#1E1C1A',{roughness:0.2}))}
         if(i.sub==='sink'){const c=[i.x+i.w/2,i.y+i.d/2], s=Math.min(i.w,i.d)-16; box(c[0]-s/2,c[1]-s/2,s,s,h,0.4,mat('#9C968E',{roughness:0.3,metalness:0.4}))}
         // front seams
-        if(i.back){const hz=i.back==='L'||i.back==='R'; const len=hz?i.d:i.w; const n=Math.max(1,Math.round(len/60)); for(let k=1;k<n;k++){const p=k*len/n; if(hz) box(i.back==='L'?i.x+i.w-0.2:i.x-0.2,i.y+p-0.3,0.6,0.6,10,h-14,mat('#A89880'),false); else box(i.x+p-0.3,i.back==='T'?i.y+i.d-0.2:i.y-0.2,0.6,0.6,10,h-14,mat('#A89880'),false)}}
+        if(i.back){const hz=i.back==='L'||i.back==='R'; const len=hz?i.d:i.w; const n=Math.max(1,Math.round(len/60)); for(let k=1;k<n;k++){const p=k*len/n; if(hz) box(i.back==='L'?i.x+i.w-0.2:i.x-0.2,i.y+p-0.3,0.6,0.6,10,h-14,mat('#4A3020'),false); else box(i.x+p-0.3,i.back==='T'?i.y+i.d-0.2:i.y-0.2,0.6,0.6,10,h-14,mat('#4A3020'),false)}}
         break;}
       case 'wardrobe':{ box(i.x,i.y,i.w,i.d,0,h,m);
-        const hz=i.back==='L'||i.back==='R'; const len=hz?i.d:i.w; const n=Math.max(2,Math.round(len/50)); const sm=mat(i.mat==='oak'?'#9C7A52':'#CFC5B6');
+        const hz=i.back==='L'||i.back==='R'; const len=hz?i.d:i.w; const n=Math.max(2,Math.round(len/50)); const sm=mat(i.mat==='oak'?'#4A3020':'#CFC5B6');
         for(let k=1;k<n;k++){const p=k*len/n; if(hz) box(i.back==='L'?i.x+i.w-0.2:i.x-0.2,i.y+p-0.3,0.6,0.6,2,h-4,sm,false); else box(i.x+p-0.3,i.back==='T'?i.y+i.d-0.2:i.y-0.2,0.6,0.6,2,h-4,sm,false)}
         break;}
+      case 'credenza':{ box(i.x,i.y,i.w,i.d,16,h-16,m); for(const [dx,dy] of [[4,4],[i.w-7,4],[4,i.d-7],[i.w-7,i.d-7]]) box(i.x+dx,i.y+dy,3,3,0,16,mat('#A9ACAE',{metalness:0.5,roughness:0.45})); break;}
+      case 'speaker':{ box(i.x+i.w/2-2,i.y+i.d/2-2,4,4,0,68,mat('#A9ACAE',{metalness:0.5,roughness:0.45})); box(i.x,i.y,i.w,i.d,68,h-68,m); break;}
+      case 'bench':{ box(i.x,i.y,i.w,i.d,0,40,mat(MATS.oak.c)); box(i.x+1,i.y+1,i.w-2,i.d-2,40,8,m); if(i.back){const b=back(i,10); box(b.x,b.y,b.w,b.d,48,h-48,m)} break;}
+      case 'radiator': box(i.x,i.y,i.w,i.d,12,h,mat('#F3F1ED',{roughness:0.4})); break;
       default: box(i.x,i.y,i.w,i.d,z,h,m);
     }
   }
   // pendant lamp over the kitchen table + electrics
   const tbl=state.items.find(i=>i.room==='kit'&&i.kind==='table');
-  if(tbl&&!cutWalls){box(tbl.x+tbl.w/2-0.5,tbl.y+tbl.d/2-0.5,1,1,175,WH-175,mat('#3A3632'),false); const sh=new THREE.Mesh(new THREE.SphereGeometry(0.17,24,12,0,Math.PI*2,0,Math.PI/2),mat('#B8653F',{side:THREE.DoubleSide})); sh.position.set((tbl.x+tbl.w/2)/100,1.6+0.17,(tbl.y+tbl.d/2)/100); group.add(sh)}
+  if(tbl&&!cutWalls){box(tbl.x+tbl.w/2-0.5,tbl.y+tbl.d/2-0.5,1,1,175,WH-175,mat('#A9ACAE',{metalness:0.5,roughness:0.45}),false); const sh=new THREE.Mesh(new THREE.SphereGeometry(0.16,24,16),mat('#F7F2E8',{emissive:'#FFE6BF',emissiveIntensity:0.7})); sh.position.set((tbl.x+tbl.w/2)/100,1.6+0.17,(tbl.y+tbl.d/2)/100); group.add(sh)}
   if(v3elec) for(const e of state.elec){ if(e.h>WH) continue; const s=new THREE.Mesh(new THREE.SphereGeometry(0.045,12,8),mat(EK[e.kind].c,{roughness:0.4,emissive:EK[e.kind].c,emissiveIntensity:0.3})); s.position.set(e.x/100,e.h/100,e.y/100); group.add(s)}
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(T)build3D()});
