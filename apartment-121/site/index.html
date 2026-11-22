@@ -240,13 +240,13 @@ a{color:var(--accent)}
 const BASE_ROOMS=[
   {id:'bed', name:'Спальня', pts:[[0,0],[299,0],[299,542],[0,542]], bti:16.2, dims:'2,99 × 5,42', lx:150, ly:430, heat:false},
   {id:'liv', name:'Гостиная-кабинет', pts:[[309,0],[607,0],[607,425],[309,425]], bti:12.7, dims:'2,98 × 4,25', lx:485, ly:300, heat:true},
-  {id:'kit', name:'Кухня', pts:[[635,0],[873,0],[873,422],[617,422],[617,207],[635,207]], bti:10.5, dims:'2,38–2,56 × 4,22', lx:745, ly:300, heat:true},
+  {id:'kit', name:'Кухня', pts:[[635,0],[873,0],[873,422],[617,422],[617,201],[635,201]], bti:10.5, dims:'2,38–2,56 × 4,22', lx:745, ly:300, heat:true},
   {id:'hall', name:'Прихожая', pts:[[309,435],[837,435],[837,546],[856,546],[856,645],[685,645],[685,527],[309,527]], bti:7.5, dims:'', lx:784, ly:600, heat:true},
 ];
 const BATH_ROOMS={
-  combined:[{id:'bath', name:'Санузел', pts:[[883,351],[1056,351],[1056,645],[866,645],[866,536],[847,536],[847,435],[883,435]], bti:5.6, dims:'2,09 × 2,94', lx:921, ly:490, heat:true, tile:true}],
+  combined:[{id:'bath', name:'Санузел', pts:[[883,351],[1056,351],[1056,645],[866,645],[866,536],[847,536],[847,442],[883,442]], bti:5.6, dims:'2,09 × 2,94', lx:921, ly:490, heat:true, tile:true}],
   separate:[
-    {id:'bath', name:'Ванная', pts:[[883,351],[1056,351],[1056,536],[847,536],[847,435],[883,435]], bti:3.6, dims:'2,09 × 1,85', lx:921, ly:490, heat:true, tile:true},
+    {id:'bath', name:'Ванная', pts:[[883,351],[1056,351],[1056,536],[847,536],[847,442],[883,442]], bti:3.6, dims:'2,09 × 1,85', lx:921, ly:490, heat:true, tile:true},
     {id:'wc', name:'Туалет', pts:[[866,546],[1056,546],[1056,645],[866,645]], bti:1.9, dims:'1,90 × 0,99', lx:920, ly:612, heat:true, tile:true}],
 };
 const BASE_WALLS=[
@@ -255,11 +255,12 @@ const BASE_WALLS=[
   {x:-25,y:542,w:334,h:25,e:1},       // bedroom to stairwell
   {x:299,y:0,w:10,h:542},             // bedroom | living, corridor
   {x:607,y:0,w:10,h:425},             // living | kitchen
-  {x:617,y:0,w:18,h:207},             // thicker part of the kitchen wall near the window (measured 18 cm)
+  {x:617,y:0,w:18,h:201},             // thicker part of the kitchen wall near the window (measured 18 cm)
   {x:309,y:425,w:308,h:10},           // living | corridor
   {x:607,y:422,w:276,h:13},           // kitchen | corridor
   {x:873,y:0,w:25,h:341,e:1},         // kitchen right
-  {x:873,y:341,w:10,h:94},            // kitchen | bathroom
+  {x:873,y:341,w:10,h:101},           // kitchen | bathroom
+  {x:847,y:435,w:36,h:7},             // bathroom corner cut-out by the door
   {x:883,y:341,w:198,h:10},           // bathroom top
   {x:309,y:527,w:376,h:25,e:1},       // corridor to stairwell
   {x:660,y:527,w:25,h:143,e:1},       // entry niche left
@@ -422,7 +423,7 @@ function defaults(){const b=bathSet('combined'); return{
     F('Посудомойка 45','kit',813,300,60,45,90,'paint',{kind:'base',back:'R'}),
     F('Мойка + измельчитель + фильтр','kit',813,345,60,60,90,'paint',{kind:'base',sub:'sink',back:'R'}),
     F('Бутылочница 15','kit',813,405,60,17,90,'paint',{kind:'base',back:'R',store:1}),
-    F('Ящики, основная рабочая зона','kit',617,207,60,95,90,'paint',{kind:'base',back:'L',store:1}),
+    F('Ящики, основная рабочая зона','kit',617,201,60,101,90,'paint',{kind:'base',back:'L',store:1}),
     F('Пенал: СВЧ и кладовая','kit',617,302,60,60,240,'paint',{back:'L',store:1,doors:'swing',dw:60}),
     F('Холодильник','kit',617,362,60,60,200,'white',{back:'L',doors:'swing',dw:60}),
     F('Верхние шкафы','kit',838,160,35,262,95,'paint',{z:145,upper:1,store:1}),
@@ -434,7 +435,7 @@ function defaults(){const b=bathSet('combined'); return{
     F('Стул','kit',770,52,45,45,85,'oak',{kind:'chair',back:'R'}),
     F('Стул','kit',770,113,45,45,85,'oak',{kind:'chair',back:'R'}),
     PN('Фартук: голубая плитка','kit',869,160,4,262,{mat:'blue',z:90,h:55,full:0}),
-    PN('Фартук: голубая плитка','kit',617,207,4,95,{mat:'blue',z:90,h:60,full:0}),
+    PN('Фартук: голубая плитка','kit',617,201,4,101,{mat:'blue',z:90,h:60,full:0}),
     // hall
     F('Шкаф для одежды в прихожей','hall',685,527,60,58,260,'paint',{kind:'wardrobe',back:'L',store:1,doors:'swing',dw:60}),
     F('Техшкаф: щиток, инвертор, батарея, роутер','hall',685,585,60,60,260,'paint',{kind:'wardrobe',back:'L',doors:'swing',dw:40}),
@@ -568,7 +569,7 @@ const CATALOG=[
 const ECAT=Object.keys(EK);
 
 /* ===================== STATE ===================== */
-const KEY='kv121-plan-v8';
+const KEY='kv121-plan-v9';
 let state;
 try{state=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){state=null}
 if(!state||!Array.isArray(state.items)) state=fixDefaults(defaults());
@@ -1096,7 +1097,6 @@ function renderConcept(){
       <ul>
         <li>Размеры взяты с плана БТИ, окна по фото. Санузел и прихожая на плане упрощены. Перемерьте их рулеткой.</li>
         <li>Совмещение санузла, закладка двери в туалет и расширение проёма под арку — это перепланировка. Её нужно согласовать.</li>
-        <li>Кухня: левая стена по замерам 207 + 240 = 447 см, правая 422 см. Обычно они равны: перемерьте левую стену от окна до стены коридора.</li>
         <li>Красные трубки у стены в туалете, судя по всему, разводка отопления к радиаторам. Уточните у застройщика по исполнительной схеме, где пойдут трубы в стяжке, прежде чем сверлить пол.</li>
         <li>Инвертор и батарея: уточните у управляющей компании, нет ли ограничений, и закажите проект подключения у электрика. Батареи только LiFePO4.</li>
         <li>Справа от входной двери, судя по фото, ниша под электрощиток. Рядом труба и гофра: уточните у застройщика, что это.</li>
