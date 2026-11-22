@@ -94,6 +94,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .prose ul{padding-left:18px;margin:4px 0}
 .confirm{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 svg text{font-family:var(--font)}
+a{color:var(--accent)}
 .t-room{font-size:15px;font-weight:700;fill:var(--ink);paint-order:stroke;stroke:var(--plan-bg);stroke-width:4px;stroke-linejoin:round}
 .t-sub{font-size:11px;fill:var(--muted);font-family:var(--mono);paint-order:stroke;stroke:var(--plan-bg);stroke-width:3px}
 .t-dim{font-size:12px;fill:var(--dim);font-family:var(--mono)}
@@ -121,6 +122,7 @@ svg text{font-family:var(--font)}
     <button role="tab" data-tab="elec" aria-selected="false">Электрика</button>
     <button role="tab" data-tab="furn" aria-selected="false">Мебель и хранение</button>
     <button role="tab" data-tab="concept" aria-selected="false">Концепция</button>
+    <button role="tab" data-tab="shop" aria-selected="false">Подборка</button>
   </nav>
 
   <!-- PLAN -->
@@ -199,7 +201,9 @@ svg text{font-family:var(--font)}
       <div class="sheet-bar">
         <button class="chip" id="cut-walls" aria-pressed="true">Срезать стены до 1,2 м</button>
         <button class="chip" id="v3-elec" aria-pressed="false">Показать розетки</button>
+        <button class="chip" id="v3-eve" aria-pressed="false">Вечерний свет</button>
         <button class="btn" id="v3-reset">Вид сверху</button>
+        <span class="row" id="v3-views"></span>
         <span class="sp"></span>
         <span class="small muted">Вращать: тянуть. Приблизить: колесо или щипок. Сдвинуть: правая кнопка или два пальца.</span>
       </div>
@@ -214,6 +218,7 @@ svg text{font-family:var(--font)}
   <section id="tab-furn" hidden></section>
   <!-- CONCEPT -->
   <section id="tab-concept" hidden></section>
+  <section id="tab-shop" hidden></section>
 </div>
 
 <script type="importmap">
@@ -279,6 +284,13 @@ const MATS={
   white:{n:'Белый',c:'#F3F1ED'}, dark:{n:'Графит (техника)',c:'#3A3632'}, stone:{n:'Плитка молочная',c:'#E6DFD4'},
   rug:{n:'Шерсть молочная',c:'#D8CCB6'}, mirror:{n:'Зеркало',c:'#C5D3D8'}, slats:{n:'Рейки, дуб табачный',c:'#7E5638'},
 };
+const LK={
+  TRACK:{n:'Встроенный магнитный трек',c:'#5A544D'}, SPOT:{n:'Встроенный светильник',c:'#8A7F72'},
+  PEND:{n:'Подвесной светильник',c:'#C9A227'}, SCON:{n:'Бра / подсветка картины',c:'#D08A2E'},
+  STRIP:{n:'LED-лента',c:'#E3B33A'}, FLOOR:{n:'Торшер (через розетку)',c:'#B8792E'}, LAMP:{n:'Настольная лампа',c:'#B8792E'},
+};
+const LCAT=Object.keys(LK);
+MATS.art={n:'Картина',c:'#C9B9A6'};
 const DARKMAT=new Set(['dark','cherry','emerald','oak','slats']);
 const EK={
   S:{n:'Розетка',c:'#C4563A',k:'Р'}, S2:{n:'Розетка двойная',c:'#C4563A',k:'Р2'}, SU:{n:'Розетка 2× + USB',c:'#C4563A',k:'U'},
@@ -295,6 +307,7 @@ const F=(name,room,x,y,w,d,h,mat,o={})=>({id:nid('f'),cat:'f',name,room,x,y,w,d,
 const PN=(name,room,x,y,w,d,o={})=>({id:nid('p'),cat:'p',name,room,x,y,w,d,h:270,z:0,mat:'slats',nc:1,full:1,...o});
 const LOW={h:110,full:0};
 const E=(kind,room,x,y,h,label)=>({id:nid('e'),cat:'e',kind,room,x,y,h,label});
+const Lt=(kind,room,x,y,w,d,h,label,o={})=>({id:nid('l'),cat:'l',kind,room,x,y,w,d,h,label,...o});
 
 function bathSet(m){
   if(m==='separate') return {items:[
@@ -316,6 +329,11 @@ function bathSet(m){
     E('P','bath',1048,468,60,'Электрический полотенцесушитель'),
     E('P','bath',960,362,250,'Вытяжной вентилятор (короб к вентканалу)'),
     E('P','wc',1040,600,250,'Вытяжной вентилятор в канал'),
+  ], lights:[
+    Lt('SPOT','bath',930,398,0,0,270,'Встроенный светильник IP65 над ванной'),
+    Lt('SPOT','bath',1000,398,0,0,270,'Встроенный светильник IP65 над ванной'),
+    Lt('SPOT','bath',955,500,0,0,270,'Встроенный светильник, общий свет'),
+    Lt('SPOT','wc',955,621,0,0,270,'Встроенный светильник'),
   ]};
   return {items:[
     F('Ванна 170×75','bath',877,360,170,75,58,'white',{kind:'tub'}),
@@ -323,13 +341,13 @@ function bathSet(m){
     F('Зеркальный шкаф 60','bath',875,545,14,60,70,'mirror',{z:115,upper:1,store:1}),
     F('Колонна: стиральная + сушильная','bath',990,440,60,60,175,'white',{back:'R'}),
     F('Шкаф с бойлером над колонной','bath',990,440,60,60,80,'paint',{z:180,upper:1,store:1}),
-    F('Пенал 90×40: химия, полотенца','bath',1010,505,40,90,200,'paint',{back:'R',store:1}),
+    F('Пенал 90×40: химия, полотенца','bath',1010,505,40,90,200,'paint',{back:'R',store:1,doors:'swing',dw:45}),
     F('Короб: стояк и инсталляция','bath',1020,600,30,72,120,'stone',{back:'R'}),
     F('Полка над коробом','bath',1020,600,30,72,60,'paint',{z:130,upper:1,store:1}),
     F('Унитаз подвесной','bath',965,618,55,36,40,'white',{kind:'wc',back:'R'}),
     F('Гигиенический душ','bath',1016,604,4,10,15,'steel',{z:80,nc:1}),
     F('Полотенцесушитель','bath',875,615,6,50,80,'steel',{z:55,nc:1}),
-    F('Обувница 110×30','hall',831,555,30,110,100,'paint',{back:'R',store:1,bset:1}),
+    F('Обувница 110×30','hall',831,555,30,110,100,'paint',{back:'R',store:1,bset:1,doors:'swing',dw:55}),
     F('Зеркало над обувницей','hall',858,565,3,90,110,'mirror',{z:110,upper:1,nc:1,bset:1}),
     PN('Рейки за зеркалом','hall',861,548,4,124,{bset:1}),
   ], elec:[
@@ -340,18 +358,23 @@ function bathSet(m){
     E('P','bath',877,640,60,'Электрический полотенцесушитель'),
     E('P','bath',1040,610,250,'Вытяжной вентилятор в канал'),
     E('S','hall',833,665,30,'Розетка у обувницы: сушилка для обуви'),
+  ], lights:[
+    Lt('TRACK','bath',956,445,4,205,270,'Встроенный трек: 3 светильника, компоненты не ниже IP44'),
+    Lt('SPOT','bath',930,398,0,0,270,'Встроенный светильник IP65 над ванной'),
+    Lt('SPOT','bath',1000,398,0,0,270,'Встроенный светильник IP65 над ванной'),
   ]};
 }
 
 function defaults(){const b=bathSet('combined'); return{
+  lights:[...mainLights(),...b.lights],
   ceiling:270, bath:'combined', bathSets:{},
   items:[
     // bedroom
     F('Кровать 180×200','bed',4,130,210,180,45,'linen',{kind:'bed',back:'L',acc:'blue'}),
     F('Тумба','bed',4,85,40,45,55,'oak',{store:1}),
     F('Тумба','bed',4,310,40,45,55,'oak',{store:1}),
-    F('Шкаф 120, молочные фасады','bed',0,365,60,117,260,'paint',{kind:'wardrobe',back:'L',store:1}),
-    F('Шкаф 215, молочные фасады','bed',0,482,215,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
+    F('Шкаф 120, молочные фасады','bed',0,365,60,117,260,'paint',{kind:'wardrobe',back:'L',store:1,doors:'swing',dw:58}),
+    F('Шкаф 215, молочные фасады','bed',0,482,215,60,260,'paint',{kind:'wardrobe',back:'B',store:1,doors:'swing',dw:54}),
     F('Туалетный / рабочий стол 120×50','bed',249,25,50,120,75,'paint',{kind:'table'}),
     F('Стул','bed',200,62,42,42,80,'linen',{kind:'chair',back:'L'}),
     F('Зеркало над столом','bed',296,45,3,80,80,'mirror',{z:95,upper:1}),
@@ -361,8 +384,8 @@ function defaults(){const b=bathSet('combined'); return{
     F('ТВ 50″ на стене','bed',293,163,6,112,65,'dark',{z:100,kind:'tv',nc:1}),
     // living
     F('Диван-кровать 220×100','liv',309,120,100,220,85,'blue',{kind:'sofa',back:'L',ext:{dx:0,dy:10,w:210,d:200,label:'разложенный 160×200'}}),
-    F('Шкаф 140, молочные фасады','liv',309,365,140,60,260,'paint',{kind:'wardrobe',back:'B',store:1}),
-    F('Медиатумба 200: винил, усилитель, пластинки','liv',561,160,42,200,60,'oak',{kind:'credenza',back:'R',store:1}),
+    F('Шкаф-купе 140, молочные фасады','liv',309,365,140,60,260,'paint',{kind:'wardrobe',back:'B',store:1,doors:'slide'}),
+    F('Медиатумба 200: винил, усилитель, пластинки','liv',561,160,42,200,60,'oak',{kind:'credenza',back:'R',store:1,doors:'slide'}),
     F('ТВ 55″','liv',597,198,6,124,72,'dark',{z:100,kind:'tv',nc:1}),
     F('Проигрыватель','liv',565,312,36,42,14,'dark',{z:60,upper:1,nc:1}),
     F('Колонка на стойке','liv',575,132,25,25,105,'oak',{kind:'speaker'}),
@@ -373,25 +396,31 @@ function defaults(){const b=bathSet('combined'); return{
     F('Ковёр 140×200','liv',420,130,140,200,1,'rug',{kind:'rug',nc:1}),
     F('Радиатор','liv',380,0,100,10,50,'white',{kind:'radiator',nc:1}),
     PN('Рейки за медиазоной','liv',603,150,4,220),
+    F('Полка для картин и обложек','liv',309,140,12,180,4,'oak',{z:120,upper:1,nc:1}),
+    F('Ваша абстрактная картина','liv',309,200,4,50,60,'art',{z:124,upper:1,nc:1,kind:'art',seed:3}),
+    F('Обложка пластинки','liv',309,150,3,31,31,'art',{z:124,upper:1,nc:1,kind:'art',seed:7}),
+    F('Обложка пластинки','liv',309,275,3,31,31,'art',{z:124,upper:1,nc:1,kind:'art',seed:11}),
+    F('Картина над банкеткой','kit',617,62,3,70,70,'art',{z:118,upper:1,nc:1,kind:'art',seed:5}),
+    F('Картина в коридоре','hall',440,524,90,3,70,'art',{z:120,upper:1,nc:1,kind:'art',seed:9}),
     // kitchen: cooking half at the arch, dining half at the window
-    F('Ящики 40','kit',805,200,60,40,90,'paint',{kind:'base',back:'R',store:1}),
+    F('Ящики 80','kit',805,160,60,80,90,'paint',{kind:'base',back:'R',store:1}),
     F('Варочная панель + духовка','kit',805,240,60,60,90,'paint',{kind:'base',sub:'hob',back:'R'}),
     F('Посудомойка 45','kit',805,300,60,45,90,'paint',{kind:'base',back:'R'}),
-    F('Мойка','kit',805,345,60,60,90,'paint',{kind:'base',sub:'sink',back:'R',store:1}),
+    F('Мойка + измельчитель + фильтр','kit',805,345,60,60,90,'paint',{kind:'base',sub:'sink',back:'R'}),
     F('Бутылочница 20','kit',805,405,60,20,90,'paint',{kind:'base',back:'R',store:1}),
     F('Ящики, основная рабочая зона','kit',617,200,60,105,90,'paint',{kind:'base',back:'L',store:1}),
-    F('Пенал: СВЧ и кладовая','kit',617,305,60,60,240,'paint',{back:'L',store:1}),
-    F('Холодильник','kit',617,365,60,60,200,'white',{back:'L'}),
-    F('Верхние шкафы','kit',830,200,35,225,95,'paint',{z:145,upper:1,store:1}),
+    F('Пенал: СВЧ и кладовая','kit',617,305,60,60,240,'paint',{back:'L',store:1,doors:'swing',dw:60}),
+    F('Холодильник','kit',617,365,60,60,200,'white',{back:'L',doors:'swing',dw:60}),
+    F('Верхние шкафы','kit',830,160,35,265,95,'paint',{z:145,upper:1,store:1}),
     F('Верхние шкафы','kit',617,200,35,105,95,'paint',{z:145,upper:1,store:1}),
-    F('Банкетка с ящиками','kit',617,20,45,160,85,'linen',{kind:'bench',back:'L',store:1,acc:'emerald'}),
+    F('Банкетка с подъёмным сиденьем','kit',617,20,45,160,85,'linen',{kind:'bench',back:'L',store:1,acc:'emerald'}),
     F('Обеденный стол 120×80','kit',671,40,80,120,75,'oak',{kind:'table'}),
     F('Стул','kit',756,52,45,45,85,'oak',{kind:'chair',back:'R'}),
     F('Стул','kit',756,113,45,45,85,'oak',{kind:'chair',back:'R'}),
     PN('Фартук: голубая плитка','kit',861,200,4,225,{mat:'blue',z:90,h:55,full:0}),
     PN('Фартук: голубая плитка','kit',617,200,4,105,{mat:'blue',z:90,h:55,full:0}),
     // hall
-    F('Шкаф в прихожей (щиток внутри)','hall',685,532,60,140,260,'paint',{kind:'wardrobe',back:'L',store:1}),
+    F('Шкаф в прихожей (щиток внутри)','hall',685,532,60,140,260,'paint',{kind:'wardrobe',back:'L',store:1,doors:'swing',dw:47}),
     F('Антресоль над коридором','hall',309,435,346,92,45,'paint',{z:225,upper:1,store:1}),
     ...b.items,
   ],
@@ -399,7 +428,8 @@ function defaults(){const b=bathSet('combined'); return{
     E('SW','hall',863,458,90,'Блок у входа: свет прихожей, свет и вентиляция санузла'),
     E('T','hall',863,442,90,'Терморегулятор тёплого пола санузла'),
     E('BOX','hall',715,670,180,'Электрощиток в нише справа от входа: в шкафу нужна отдельная дверца'),
-    E('S','hall',688,620,30,'В шкафу: пылесос, сушилка для обуви'),
+    E('S','hall',688,620,100,'В шкафу: зарядка вертикального пылесоса'),
+    E('S','hall',688,655,15,'Станция робота-пылесоса: открытая ниша внизу шкафа'),
     E('LAN','hall',688,548,200,'Роутер и слаботочка (верх шкафа)'),
     E('S','hall',380,525,30,'Розетка в коридоре (пылесос)'),
     E('SW2','hall',548,437,90,'Проходной выключатель коридора'),
@@ -408,8 +438,10 @@ function defaults(){const b=bathSet('combined'); return{
     E('SW','bed',297,428,90,'Выключатель у двери: общий свет'),
     E('SW2','bed',6,78,70,'Проходной выключатель у кровати'),
     E('SU','bed',6,98,70,'Розетка 2× + USB у тумбы'),
-    E('L','bed',6,118,150,'Вывод под бра'),
-    E('L','bed',6,322,150,'Вывод под бра'),
+    E('L','bed',24,107,270,'Вывод в потолке под подвес над тумбой'),
+    E('L','bed',24,332,270,'Вывод в потолке под подвес над тумбой'),
+    E('S','bed',4,425,100,'Внутри шкафа: выдвижная гладильная доска и отпариватель'),
+    E('S','bed',297,395,30,'Розетка для пылесоса у двери'),
     E('SU','bed',6,340,70,'Розетка 2× + USB у тумбы'),
     E('SW2','bed',6,358,70,'Проходной выключатель у кровати'),
     E('S2','bed',297,40,85,'Розетки у туалетного стола (фен, лампа, ноутбук)'),
@@ -423,16 +455,18 @@ function defaults(){const b=bathSet('combined'); return{
     E('S2','liv',605,26,85,'Розетки над столом'),
     E('LAN','liv',605,62,85,'Интернет у стола'),
     E('S2','liv',605,100,85,'Розетки над столом'),
-    E('S2','liv',605,175,30,'Проигрыватель и усилитель (в тумбе)'),
+    E('S2','liv',605,175,30,'Проигрыватель и усилитель (в тумбе). Рядом каналы под акустический кабель к колонкам'),
     E('S2','liv',605,235,110,'Розетки за телевизором'),
     E('LAN','liv',605,262,110,'LAN и ТВ-антенна за телевизором'),
     E('S2','liv',605,340,30,'Розетки в тумбе (приставка, сабвуфер)'),
-    E('SU','liv',311,110,30,'Розетка у дивана'),
-    E('SU','liv',311,350,30,'Розетка у дивана'),
+    E('SU','liv',311,110,30,'Розетка у дивана (USB-A + USB-C)'),
+    E('S','liv',311,92,30,'Розетка под торшер: включается выключателем у двери'),
+    E('SU','liv',311,350,30,'Розетка у дивана (USB-A + USB-C)'),
     E('AC','liv',380,423,230,'Кондиционер над шкафом'),
     E('P','liv',530,2,262,'Вывод под электрокарниз (по желанию)'),
     E('SW','kit',686,423,90,'Выключатель: общий свет и подвес над столом'),
     E('T','kit',619,195,90,'Терморегулятор тёплого пола'),
+    E('SU','kit',619,150,95,'USB-розетка над банкеткой (телефоны)'),
     E('S2','kit',619,230,110,'Розетки над столешницей (рабочая зона)'),
     E('S2','kit',619,280,110,'Розетки над столешницей (рабочая зона)'),
     E('L','kit',619,255,140,'Подсветка столешниц (блоки питания в верхних шкафах)'),
@@ -441,14 +475,35 @@ function defaults(){const b=bathSet('combined'); return{
     E('S','kit',863,255,220,'Вытяжка'),
     E('P','kit',863,275,20,'Варочная панель: кабель 3×6 мм², автомат 32 А'),
     E('S2','kit',863,322,110,'Розетки над столешницей'),
-    E('S','kit',863,385,30,'Посудомойка (розетка в модуле мойки)'),
+    E('S','kit',863,358,40,'Посудомойка (в модуле мойки)'),
+    E('S','kit',863,375,40,'Измельчитель отходов: отдельная розетка с УЗО, пневмокнопка на столешнице'),
+    E('S','kit',863,392,40,'Фильтр обратного осмоса с помпой'),
     E('L','kit',711,100,270,'Подвесной светильник над столом'),
     E('P','kit',835,2,262,'Вывод под электрокарниз (по желанию)'),
     ...b.elec,
   ],
-  layers:{furn:true,upper:true,elec:true,panels:true,heat:false,dims:true,heights:false},
+  layers:{furn:true,light:true,upper:true,elec:true,panels:true,heat:false,dims:true,heights:false},
 }}
 function fixDefaults(s){return s}
+function mainLights(){return[
+  Lt('TRACK','hall',330,479,320,4,270,'Встроенный трек вдоль коридора: 3–4 поворотных спота, один на картину'),
+  Lt('TRACK','hall',788,545,4,115,270,'Встроенный трек у входа: спот на шкаф и линейный модуль над зеркалом'),
+  Lt('STRIP','hall',320,522,330,3,15,'Ночная подсветка у пола с датчиком движения'),
+  Lt('TRACK','kit',739,210,4,200,270,'Встроенный трек над рабочей зоной: споты на обе столешницы'),
+  Lt('STRIP','kit',827,200,3,225,140,'LED-лента под верхними шкафами'),
+  Lt('STRIP','kit',650,200,3,105,140,'LED-лента под верхними шкафами'),
+  Lt('PEND','kit',711,100,0,0,160,'Подвес над столом: молочный шар Ø30',{r:15}),
+  Lt('SCON','kit',619,100,0,0,195,'Подсветка картины над банкеткой'),
+  Lt('TRACK','liv',428,40,4,300,270,'Встроенный трек: мягкий общий свет, споты на картину и шкаф'),
+  Lt('FLOOR','liv',332,98,0,0,155,'Торшер с тканевым абажуром: розетка включается выключателем у двери'),
+  Lt('SCON','liv',311,225,0,0,195,'Подсветка картины над диваном'),
+  Lt('STRIP','liv',602,150,3,220,265,'LED-лента сверху за рейками: тёплая подсветка стены'),
+  Lt('LAMP','liv',590,28,0,0,110,'Настольная лампа на рабочем столе'),
+  Lt('PEND','bed',24,107,0,0,120,'Подвес над левой тумбой: опаловый шар Ø20',{r:10}),
+  Lt('PEND','bed',24,332,0,0,120,'Подвес над правой тумбой: опаловый шар Ø20',{r:10}),
+  Lt('STRIP','bed',2,80,3,280,265,'LED-лента сверху за рейками изголовья'),
+  Lt('TRACK','bed',150,40,4,380,270,'Встроенный трек: общий свет, споты на шкаф и туалетный стол'),
+]}
 
 const CATALOG=[
   ['Кровать 180×200',{w:190,d:210,h:45,mat:'oak',kind:'bed',back:'T',acc:'blue'}],
@@ -488,18 +543,19 @@ const CATALOG=[
 const ECAT=Object.keys(EK);
 
 /* ===================== STATE ===================== */
-const KEY='kv121-plan-v3';
+const KEY='kv121-plan-v4';
 let state;
 try{state=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){state=null}
 if(!state||!Array.isArray(state.items)) state=fixDefaults(defaults());
 state.layers={...defaults().layers,...(state.layers||{})};
+if(!Array.isArray(state.lights)) state.lights=[];
 if(!state.bath) state.bath='combined'; if(!state.bathSets) state.bathSets={}; setGeom(state.bath);
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} renderFacts()}
 let sel=null, zoom=1, drag=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const snap=v=>Math.round(v/5)*5;
-const find=id=>state.items.find(i=>i.id===id)||state.elec.find(i=>i.id===id);
+const find=id=>state.items.find(i=>i.id===id)||state.elec.find(i=>i.id===id)||state.lights.find(i=>i.id===id);
 const roomName=id=>(ROOMS.find(r=>r.id===id)||{name:'—'}).name;
 const fmt=(v,d=1)=>v.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d});
 
@@ -585,6 +641,17 @@ function renderPlan(){
     }
   }
   // sofa unfolded ghosts
+  // wardrobe and appliance doors
+  const doorBad=new Set();
+  if(L.furn) for(const i of state.items.filter(i=>i.cat==='f'&&i.doors)){
+    const sw=doorSwings(i);
+    if(i.doors==='swing'){
+      const blocked=state.items.some(o=>solid(o)&&o.id!==i.id&&o.kind!=='wardrobe'&&ov(sw.zone,o,1));
+      if(blocked) doorBad.add(i.id);
+      for(const a of sw.arcs) s+=`<path d="${a}" fill="none" style="stroke:${blocked?'var(--bad)':'var(--muted)'}" stroke-width="1" stroke-dasharray="3 3" opacity=".8"/>`;
+    } else s+=sw.slide;
+  }
+  window.__doorBad=doorBad;
   if(L.furn) for(const i of state.items) if(i.ext){
     s+=`<rect x="${i.x+i.ext.dx}" y="${i.y+i.ext.dy}" width="${i.ext.w}" height="${i.ext.d}" fill="none" style="stroke:var(--accent)" stroke-dasharray="6 4" stroke-width="1.2"/>`;
   }
@@ -629,6 +696,22 @@ function renderPlan(){
     s+=`<text class="t-sub" x="${r.lx}" y="${r.ly+15}" text-anchor="middle">${fmt(r.bti)} м²</text>`;
     if(r.dims) s+=`<text class="t-sub" x="${r.lx}" y="${r.ly+28}" text-anchor="middle">${r.dims}</text>`;
   }
+  // lights
+  if(L.light) for(const l of state.lights){
+    const k=LK[l.kind]||LK.SPOT, isSel=sel===l.id, st=isSel?'var(--sel)':k.c;
+    let g=`<g class="item" data-id="${l.id}">`;
+    if(l.kind==='TRACK'){ g+=`<rect x="${l.x}" y="${l.y}" width="${Math.max(l.w,3)}" height="${Math.max(l.d,3)}" fill="${k.c}" style="stroke:${isSel?'var(--sel)':'none'}" stroke-width="2"/>`;
+      const len=Math.max(l.w,l.d), hz=l.w>=l.d, n=Math.max(2,Math.round(len/90)); for(let q=0;q<n;q++){const t=(q+0.5)*len/n; g+=`<circle cx="${hz?l.x+t:l.x+l.w/2}" cy="${hz?l.y+l.d/2:l.y+t}" r="5" fill="${k.c}" style="stroke:var(--plan-bg)" stroke-width="1.5"/>`} }
+    else if(l.kind==='STRIP'){ g+=`<rect x="${l.x}" y="${l.y}" width="${Math.max(l.w,3)}" height="${Math.max(l.d,3)}" fill="${k.c}" opacity=".9" style="stroke:${isSel?'var(--sel)':'none'}" stroke-width="2"/>`; }
+    else { const r=l.kind==='FLOOR'?11:8;
+      g+=`<circle cx="${l.x}" cy="${l.y}" r="${r}" style="fill:var(--plan-bg);stroke:${st}" stroke-width="2.5"/>`;
+      if(l.kind==='PEND'||l.kind==='FLOOR'||l.kind==='LAMP') g+=`<circle cx="${l.x}" cy="${l.y}" r="3.5" fill="${k.c}"/>`;
+      if(l.kind==='SPOT') g+=`<path d="M${l.x-5} ${l.y-5}L${l.x+5} ${l.y+5}M${l.x+5} ${l.y-5}L${l.x-5} ${l.y+5}" stroke="${k.c}" stroke-width="1.6"/>`;
+      if(l.kind==='SCON') g+=`<path d="M${l.x-5} ${l.y}h10" stroke="${k.c}" stroke-width="2.4"/>`;
+    }
+    g+=`<rect x="${(l.w?l.x:l.x-12)-4}" y="${(l.d?l.y:l.y-12)-4}" width="${(l.w||24)+8}" height="${(l.d||24)+8}" fill="transparent"/></g>`;
+    s+=g;
+  }
   // electrics
   if(L.elec) for(const e of state.elec){
     const k=EK[e.kind]||EK.S, isSel=sel===e.id;
@@ -655,7 +738,21 @@ function renderPlan(){
   }
   svg.innerHTML=s;
   const n=bad.size;
-  $('#coll-msg').innerHTML=n?`<span class="warn">Пересечения: ${n} ${n===1?'предмет':'предм.'} отмечены красным</span>`:'Пересечений нет';
+  const nd=(window.__doorBad||new Set()).size;
+  $('#coll-msg').innerHTML=(n?`<span class="warn">Пересечения: ${n} предм.</span>`:'Пересечений нет')+' · '+(nd?`<span class="warn">Дверцам что-то мешает: ${nd}</span>`:'Все дверцы открываются свободно');
+}
+function arcPath(C,P1,P2){const r=Math.hypot(P1[0]-C[0],P1[1]-C[1]);const cr=(P1[0]-C[0])*(P2[1]-C[1])-(P1[1]-C[1])*(P2[0]-C[0]);return `M${P1[0]} ${P1[1]}A${r} ${r} 0 0 ${cr>0?1:0} ${P2[0]} ${P2[1]}L${C[0]} ${C[1]}`}
+function doorSwings(i){
+  const f={L:'R',R:'L',T:'B',B:'T'}[i.back]||'B', hz=f==='T'||f==='B', len=hz?i.w:i.d, dw=i.dw||50;
+  const n=Math.max(1,Math.round(len/dw)), st=len/n, arcs=[], sg=(f==='T'||f==='L')?-1:1;
+  const front=hz?(f==='T'?i.y:i.y+i.d):(f==='L'?i.x:i.x+i.w);
+  for(let k=0;k<n;k++){const a=(hz?i.x:i.y)+k*st, b=a+st, h=k%2===0?a:b, o=k%2===0?b:a;
+    if(hz) arcs.push(arcPath([h,front],[o,front],[h,front+sg*st])); else arcs.push(arcPath([front,h],[front,o],[front+sg*st,h]))}
+  const zone=hz?{x:i.x,y:sg<0?i.y-st:i.y+i.d,w:i.w,d:st}:{x:sg<0?i.x-st:i.x+i.w,y:i.y,w:st,d:i.d};
+  const off=front+sg*7; const m=hz?(i.x+i.w/2):(i.y+i.d/2);
+  const slide=hz?`<path d="M${i.x+10} ${off}H${i.x+i.w-10}M${i.x+18} ${off-5}L${i.x+10} ${off}L${i.x+18} ${off+5}M${i.x+i.w-18} ${off-5}L${i.x+i.w-10} ${off}L${i.x+i.w-18} ${off+5}" fill="none" style="stroke:var(--muted)" stroke-width="1.2"/><text class="t-ann" x="${m}" y="${off+sg*12+4}" text-anchor="middle">купе</text>`
+    :`<path d="M${off} ${i.y+10}V${i.y+i.d-10}M${off-5} ${i.y+18}L${off} ${i.y+10}L${off+5} ${i.y+18}M${off-5} ${i.y+i.d-18}L${off} ${i.y+i.d-10}L${off+5} ${i.y+i.d-18}" fill="none" style="stroke:var(--muted)" stroke-width="1.2"/>`;
+  return {arcs,zone,slide};
 }
 function backRect(i,t){
   switch(i.back){case 'L':return{x:i.x,y:i.y,w:t,d:i.d};case 'R':return{x:i.x+i.w-t,y:i.y,w:t,d:i.d};case 'B':return{x:i.x,y:i.y+i.d-t,w:i.w,d:t};default:return{x:i.x,y:i.y,w:i.w,d:t}}
@@ -687,8 +784,8 @@ svg.addEventListener('pointermove',e=>{
   if(nx!==it.x||ny!==it.y){it.x=nx;it.y=ny;drag.moved=true;renderPlan();syncXY(it)}
 });
 const endDrag=e=>{ if(!drag) return; const it=find(drag.id);
-  if(drag.moved&&it&&it.cat!=='e'){const r=roomOfPoint(it.x+it.w/2,it.y+it.d/2); if(r) it.room=r;}
-  if(drag.moved&&it&&it.cat==='e'){const r=roomOfPoint(it.x,it.y)||nearestRoom(it.x,it.y); if(r) it.room=r;}
+  if(drag.moved&&it&&it.cat!=='e'&&it.cat!=='l'){const r=roomOfPoint(it.x+it.w/2,it.y+it.d/2); if(r) it.room=r;}
+  if(drag.moved&&it&&(it.cat==='e'||it.cat==='l')){const r=roomOfPoint(it.x,it.y)||nearestRoom(it.x,it.y); if(r) it.room=r;}
   if(drag.moved){save(); renderEditor();} drag=null; };
 svg.addEventListener('pointerup',endDrag); svg.addEventListener('pointercancel',endDrag);
 function nearestRoom(x,y){let best=null,bd=1e9;for(const r of ROOMS)for(const[dx,dy] of [[8,0],[-8,0],[0,8],[0,-8],[14,0],[-14,0],[0,14],[0,-14]]){if(inPoly(x+dx,y+dy,r.pts)){const d=Math.hypot(dx,dy);if(d<bd){bd=d;best=r.id}}}return best}
@@ -699,7 +796,7 @@ document.addEventListener('keydown',e=>{
   const mv={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];
   if(mv){it.x+=mv[0];it.y+=mv[1];e.preventDefault();save();renderPlan();syncXY(it);return}
   if(e.key==='Delete'||e.key==='Backspace'){removeSel();e.preventDefault()}
-  if((e.key==='r'||e.key==='R'||e.key==='к'||e.key==='К')&&it.cat!=='e'){rotate(it);save();renderPlan();renderEditor()}
+  if((e.key==='r'||e.key==='R'||e.key==='к'||e.key==='К')&&it.cat==='f'){rotate(it);save();renderPlan();renderEditor()}
 });
 function rotate(it){
   const cx=it.x+it.w/2, cy=it.y+it.d/2;
@@ -708,7 +805,7 @@ function rotate(it){
   if(it.back) it.back={L:'T',T:'R',R:'B',B:'L'}[it.back];
 }
 function removeSel(){
-  state.items=state.items.filter(i=>i.id!==sel); state.elec=state.elec.filter(i=>i.id!==sel);
+  state.items=state.items.filter(i=>i.id!==sel); state.elec=state.elec.filter(i=>i.id!==sel); state.lights=state.lights.filter(i=>i.id!==sel);
   sel=null; save(); renderPlan(); renderEditor();
 }
 function syncXY(it){const x=$('#ed-x'),y=$('#ed-y'); if(x) x.value=Math.round(it.x); if(y) y.value=Math.round(it.y)}
@@ -717,7 +814,20 @@ function syncXY(it){const x=$('#ed-x'),y=$('#ed-y'); if(x) x.value=Math.round(it
 function renderEditor(){
   const ed=$('#editor'), it=sel&&find(sel);
   if(!it){ed.innerHTML=`<h3>Выбранный предмет</h3><p class="note">Нажмите на мебель или розетку на плане. Перетаскивайте мышью или пальцем, стрелки двигают на 5 см (с Shift на 1 см), R поворачивает, Delete удаляет. Синие цифры показывают расстояние до стен и мебели в сантиметрах.</p>`;return}
-  if(it.cat==='e'){
+  if(it.cat==='l'){
+    const lin=it.kind==='TRACK'||it.kind==='STRIP';
+    ed.innerHTML=`<h3>Свет · ${esc(roomName(it.room))}</h3>
+    <div class="form">
+      <label class="w3">Тип<select id="ed-kind">${LCAT.map(k=>`<option value="${k}" ${k===it.kind?'selected':''}>${LK[k].n}</option>`).join('')}</select></label>
+      <label class="w3">Описание<input id="ed-label" value="${esc(it.label)}"></label>
+      <label>Высота, см<input type="number" id="ed-h" value="${it.h}"></label>
+      <label>X<input type="number" id="ed-x" value="${Math.round(it.x)}"></label>
+      <label>Y<input type="number" id="ed-y" value="${Math.round(it.y)}"></label>
+      ${lin?`<label>Длина X<input type="number" id="ed-w" value="${it.w}"></label><label>Длина Y<input type="number" id="ed-d" value="${it.d}"></label>`:''}
+    </div>
+    <div class="row"><button class="btn" id="ed-dup">Дублировать</button><button class="btn danger" id="ed-del">Удалить</button></div>
+    <p class="note">Для трека и ленты одна из длин — это толщина (3–4 см), другая — длина линии.</p>`;
+  } else if(it.cat==='e'){
     ed.innerHTML=`<h3>Электроточка · ${esc(roomName(it.room))}</h3>
     <div class="form">
       <label class="w3">Тип<select id="ed-kind">${ECAT.map(k=>`<option value="${k}" ${k===it.kind?'selected':''}>${EK[k].n}</option>`).join('')}</select></label>
@@ -737,6 +847,7 @@ function renderEditor(){
       <label>X<input type="number" id="ed-x" value="${Math.round(it.x)}"></label>
       <label>Y<input type="number" id="ed-y" value="${Math.round(it.y)}"></label>
       <label>От пола<input type="number" id="ed-z" value="${it.z||0}" min="0"></label>
+      ${it.doors?`<label class="w3">Двери<select id="ed-doors"><option value="swing" ${it.doors==='swing'?'selected':''}>Распашные</option><option value="slide" ${it.doors==='slide'?'selected':''}>Купе (раздвижные)</option></select></label>`:''}
       <label class="w3">Материал<select id="ed-mat">${Object.entries(MATS).map(([k,m])=>`<option value="${k}" ${k===it.mat?'selected':''}>${m.n}</option>`).join('')}</select></label>
     </div>
     <div class="row">
@@ -749,16 +860,17 @@ function renderEditor(){
   const bind=(id,fn,ev='input')=>{const el=$(id); if(el) el.addEventListener(ev,()=>{fn(el);save();renderPlan()})};
   bind('#ed-name',el=>it.name=el.value);
   bind('#ed-label',el=>it.label=el.value);
-  bind('#ed-kind',el=>it.kind=el.value,'change');
+  bind('#ed-kind',el=>{it.kind=el.value;renderEditor()},'change');
   bind('#ed-mat',el=>it.mat=el.value,'change');
+  bind('#ed-doors',el=>{it.doors=el.value; if(!it.dw) it.dw=50},'change');
   for(const k of ['w','d','h','x','y','z']) bind('#ed-'+k,el=>{const v=parseFloat(el.value); if(!isNaN(v)) { it[k]=v; if(k==='z'&&it.cat==='f') it.upper=v>=60?1:0; }});
   $('#ed-del').onclick=removeSel;
-  $('#ed-dup').onclick=()=>{const c=JSON.parse(JSON.stringify(it)); c.id=nid(it.cat); c.x+=it.cat==='e'?15:20; c.y+=it.cat==='e'?0:20; (it.cat==='e'?state.elec:state.items).push(c); sel=c.id; save(); renderPlan(); renderEditor()};
+  $('#ed-dup').onclick=()=>{const c=JSON.parse(JSON.stringify(it)); c.id=nid(it.cat); c.x+=(it.cat==='e'||it.cat==='l')?15:20; c.y+=(it.cat==='e'||it.cat==='l')?0:20; (it.cat==='e'?state.elec:it.cat==='l'?state.lights:state.items).push(c); sel=c.id; save(); renderPlan(); renderEditor()};
   const r=$('#ed-rot'); if(r) r.onclick=()=>{rotate(it);save();renderPlan();renderEditor()};
 }
 
 /* ===================== LAYERS / ADD / PROJECT ===================== */
-const LAYERS=[['furn','Мебель'],['upper','Навесное'],['panels','Деревянные панели'],['elec','Электрика'],['heights','Высоты розеток'],['heat','Тёплый пол'],['dims','Размеры']];
+const LAYERS=[['furn','Мебель'],['light','Свет'],['upper','Навесное'],['panels','Деревянные панели'],['elec','Электрика'],['heights','Высоты розеток'],['heat','Тёплый пол'],['dims','Размеры']];
 function renderLayers(){
   $('#layers').innerHTML=LAYERS.map(([k,n])=>`<button class="chip" data-layer="${k}" aria-pressed="${!!state.layers[k]}">${n}</button>`).join('');
 }
@@ -773,9 +885,9 @@ $('#bathmode').addEventListener('click',e=>{const b=e.target.closest('[data-bath
 function setBath(m){
   if(state.bath===m) return;
   const isB=i=>i.room==='bath'||i.room==='wc'||i.bset;
-  state.bathSets[state.bath]={items:state.items.filter(isB),elec:state.elec.filter(isB)};
-  state.items=state.items.filter(i=>!isB(i)); state.elec=state.elec.filter(i=>!isB(i));
-  const set=state.bathSets[m]||bathSet(m); state.items.push(...set.items); state.elec.push(...set.elec);
+  state.bathSets[state.bath]={items:state.items.filter(isB),elec:state.elec.filter(isB),lights:state.lights.filter(isB)};
+  state.items=state.items.filter(i=>!isB(i)); state.elec=state.elec.filter(i=>!isB(i)); state.lights=state.lights.filter(i=>!isB(i));
+  const set=state.bathSets[m]||bathSet(m); state.items.push(...set.items); state.elec.push(...set.elec); state.lights.push(...(set.lights||[]));
   state.bath=m; setGeom(m); sel=null; save(); buildRoomSelect(); renderAll(); if(T) build3D();
 }
 $('#add-btn').onclick=()=>{
@@ -849,6 +961,10 @@ function renderElec(){
     h+=`<h3 class="room-h">${r.name}</h3><div class="tbl"><table><thead><tr><th>Тип</th><th>Назначение</th><th class="num">Высота, см</th><th class="num">X, см</th><th class="num">Y, см</th></tr></thead><tbody>`+
       list.map(e=>`<tr><td><span style="display:inline-flex;gap:6px;align-items:center"><i class="dot" style="background:${EK[e.kind].c}">${EK[e.kind].k}</i>${EK[e.kind].n}</span></td><td>${esc(e.label)}</td><td class="num">${e.h}</td><td class="num">${Math.round(e.x)}</td><td class="num">${Math.round(e.y)}</td></tr>`).join('')+`</tbody></table></div>`;
   }
+  h+=`<h3 class="room-h" style="margin-top:26px">Освещение</h3><p class="note prose">Люстр нет. В каждой комнате два-три сценария: общий свет с треков, мягкий тёплый (торшер, подвесы, ленты за рейками) и рабочий (лампа, подсветка столешницы и зеркала). Свет 2700–3000 K, с диммером в комнатах. Все треки врезные магнитные 48 V в подвесном потолке, в санузле компоненты не ниже IP44.</p>`;
+  for(const r of ROOMS){const list=state.lights.filter(l=>l.room===r.id); if(!list.length) continue;
+    h+=`<h3 class="room-h">${r.name}</h3><div class="tbl"><table><thead><tr><th>Светильник</th><th>Описание</th><th class="num">Высота, см</th><th class="num">Длина, см</th></tr></thead><tbody>`+
+      list.map(l=>`<tr><td><span style="display:inline-flex;gap:6px;align-items:center"><i class="dot" style="background:${LK[l.kind].c}"></i>${LK[l.kind].n}</span></td><td>${esc(l.label)}</td><td class="num">${l.h}</td><td class="num">${(l.kind==='TRACK'||l.kind==='STRIP')?Math.round(Math.max(l.w,l.d)):'—'}</td></tr>`).join('')+`</tbody></table></div>`;}
   h+=`<p class="note" style="margin-top:12px">X и Y отсчитываются от левого верхнего внутреннего угла спальни (стена с окнами сверху). Точки можно двигать на плане, таблица обновится сама.</p>`;
   $('#tab-elec').innerHTML=h;
 }
@@ -868,7 +984,7 @@ function renderFurn(){
   <div class="card" style="margin-top:14px"><h3>Где хранить</h3><div class="note prose">
   <ul>
     <li><b>Прихожая.</b> Молочный шкаф от пола до потолка в нише у входа. Справа от двери ниша под электрощиток, поэтому у шкафа с этой стороны своя дверца. Внизу шкафа можно оставить нишу под станцию робота-пылесоса, розетка там есть. На месте бывшей двери в туалет обувница 30 см и зеркало. Над коридором антресоль под сезонные вещи.</li>
-    <li><b>Спальня.</b> Угловой шкаф 215 + 120 см до потолка, молочные фасады в цвет стен. Можно взять кровать с подъёмным механизмом, это ещё около 1 м³.</li>
+    <li><b>Спальня.</b> Угловой шкаф 215 + 120 см до потолка, молочные фасады в цвет стен. Можно взять кровать с подъёмным механизмом, это ещё около 1 м³. В шкафу 120 выдвижная гладильная доска и розетка для утюга или отпаривателя: гладить удобно в свободной зоне перед шкафами.</li>
     <li><b>Гостиная-кабинет.</b> Шкаф 140 см у двери под вещи и бельё для гостей. Медиатумба на ножках с отсеками под пластинки (внутренняя глубина от 33 см). Полки над столом под документы.</li>
     <li><b>Кухня.</b> Два ряда нижних шкафов, пенал до потолка, верхние шкафы, банкетка с ящиками в столовой зоне.</li>
     <li><b>Санузел.</b> Пенал 90×40 до 2 м под бытовую химию и полотенца, шкаф с бойлером над колонной, зеркальный шкаф, полка над коротким коробом инсталляции.</li>
@@ -959,20 +1075,52 @@ function renderConcept(){
   </div>`;
 }
 
+const PROMPTS=[
+ ['Гостиная-кабинет','Photorealistic interior photograph of a small living room and home office, 3 × 4.25 m, in a new apartment. Warm milky white walls, light natural oak laminate floor, one tall window 1.9 m wide with a low sill and a white radiator, sheer milky curtains from the ceiling. Dusty blue velvet sofa bed along the left wall, above it a slim oak picture ledge with a small abstract painting and two vinyl record sleeves. Opposite: a wall of dark tobacco oak vertical slats with a soft warm LED glow from above, a 55-inch TV, and a low tobacco oak credenza on brushed steel legs holding a turntable and records, bookshelf speakers on stands on both sides. A small milky white desk by the window with a cherry red office chair and a brushed steel desk lamp. Milky white sliding-door wardrobe. Recessed magnetic track lights in a suspended ceiling, a fabric floor lamp next to the sofa. Modern interior with subtle 1970s references, cozy evening light, 24 mm lens, eye level, editorial interior photography.'],
+ ['Спальня','Photorealistic interior photograph of a bedroom 3 × 5.4 m. Warm milky white walls, light natural oak laminate floor, one tall window 1.95 m wide with a low sill and a white radiator, floor-to-ceiling milky linen curtains. King-size 180 × 200 upholstered bed in milky linen with dusty blue bedding, headboard wall of dark tobacco oak vertical slats with warm LED glow, two tobacco oak nightstands with two opal glass globe pendant lights hanging low above them. Floor-to-ceiling milky white wardrobes with handleless doors in the corner. A milky white dressing table by the window with a round mirror, a 50-inch TV on the wall opposite the bed. Brushed steel details, no black. Modern with subtle 1970s references, calm evening light, 24 mm lens, eye level.'],
+ ['Кухня','Photorealistic interior photograph of a narrow kitchen 2.5 × 4.25 m. Warm milky white walls, light natural oak laminate floor. Near the entrance a galley kitchen: two parallel runs of flat milky white cabinets with brushed steel handles, light stone countertops, dusty blue glossy handmade zellige backsplash, under-cabinet warm LED light, induction hob, undermount sink with brushed steel faucet. Near the tall window a dining nook: built-in bench with milky linen upholstery and emerald green cushions, tobacco oak dining table 120 × 80, two bentwood oak chairs, opal glass globe pendant above the table, a small abstract painting above the bench. Modern with subtle 1970s references, afternoon daylight, 24 mm lens, eye level.'],
+ ['Прихожая','Photorealistic interior photograph of an apartment entrance hall and narrow corridor 0.92 m wide. Warm milky white wallpaper, light natural oak laminate floor, recessed magnetic track lights in a suspended ceiling. Floor-to-ceiling milky white wardrobe in a niche by the front door. Opposite: a slim 30 cm milky white shoe cabinet with a wall of dark tobacco oak slats and a large rounded mirror above it. One medium abstract painting on the corridor wall lit by a track spot, a soft LED night strip near the floor. Brushed steel details, modern with subtle 1970s references, 20 mm lens, eye level.'],
+ ['Санузел','Photorealistic interior photograph of a small combined bathroom 1.75 × 3.1 m. Large-format milky white wall tiles, dusty blue vertical handmade tiles around a 170 cm bathtub, warm light floor tiles. Tobacco oak vanity 60 cm with a white basin and a mirror cabinet with integrated light, wall-hung toilet on a short tiled box with a hygienic shower, stacked washer and dryer in a white column with a cabinet above, a tall milky white storage cabinet. All taps and accessories in brushed stainless steel, no black. Recessed ceiling lights, soft evening light, 18 mm lens, eye level.'],
+];
+const SHOP=[
+ ['Пол','Ламинат «натуральный дуб» 33 класс / AC5, 8–10 мм, совместим с тёплым полом. В Эпицентре есть фильтры по классу и цвету.',[['Ламинат в Эпицентре','https://epicentrk.ua/shop/laminat/'],['Пример: Classen Casa Energy 4V, водостойкий, для тёплого пола (тон темнее, «карбило»)','https://epicentrk.ua/shop/classen-54041.html']]],
+ ['Акценты из табачного дуба','ЛДСП Egger H1181 ST37 «Tobacco Halifax Oak» для медиатумбы, тумб и обеденного стола. Заказывать в мебельном цехе, образец посмотреть вживую.',[['Декор H1181 ST37 на сайте Egger','https://www.egger.com/en/furniture-interior-design/decors/H1181_37']]],
+ ['Рейки на стены','МДФ-рейки в плёнке под тёмный дуб. В отзывах на Эпицентре жалуются на качество, поэтому проверьте партию вживую.',[['Реечные панели, Эпицентр','https://epicentrk.ua/shop/makariv/reikovi-paneli/'],['Пример: рейка FD 40×16×2750, «дуб галицкий»','https://epicentrk.ua/shop/panno-dekoratyvne-fd-40kh16kh2750-mm-dub-halytskyi.html']]],
+ ['Треки','Врезной магнитный трек 48 V под натяжной или гипсокартонный потолок. Светильники в белом корпусе, к нему же блок питания и коннекторы.',[['Врезные магнитные треки (LIHT, Bigl)','https://bigl.ua/s4199300-liht'],['Трековые светильники на Prom','https://prom.ua/Magnitno-trekovaya-sistema.html'],['Трековый свет на Rozetka','https://build.rozetka.com.ua/ua/trekovoe-osveshchenie/c4659324/']]],
+ ['Подвесы-шары','Молочный шар Ø20 над тумбами и Ø30 над столом. Ищите опаловое или молочное стекло и белую или стальную основу, без чёрного.',[['«Куля» Ø30 на Rozetka (есть варианты основы)','https://build.rozetka.com.ua/ua/600563383/p600563383/']]],
+ ['Диван-кровать','Пыльно-голубой велюр, 220×100, механизм «еврокнижка» или «дельфин» со спальным местом 160×200. Смотрите JYSK и местные фабрики, в которых можно выбрать ткань.',[['JYSK Украина','https://jysk.ua/']]],
+ ['Шкафы и кухня','Корпуса из стандартных модулей ЛДСП, молочные фасады без ручек или с тонкими стальными ручками на заказ. Петли и направляющие с доводчиками.',[]],
+ ['Сантехника','Смесители и аксессуары в цвете «сатинированная сталь» или «brushed steel». Инсталляция и гигиенический душ одного производителя.',[]],
+ ['Картины','Ваша абстрактная работа на полке над диваном. Ещё две: над банкеткой на кухне (около 70×70) и в коридоре (около 90×70) под спотом трека. Обложки пластинок на полке можно менять.',[]],
+];
+function renderShop(){
+  $('#tab-shop').innerHTML=`
+  <div class="card prose" style="max-width:none"><h3>Картинки атмосферы</h3>
+    <p>Сама я не умею рисовать фотореалистичные картинки. Но есть два способа увидеть атмосферу. Первый: во вкладке «3D» кнопки «Гостиная», «Спальня», «Кухня» ставят камеру на уровень глаз, а «Вечерний свет» включает светильники. Второй: вставьте готовое описание ниже в любой генератор изображений, например Midjourney, ChatGPT или Gemini. Описания на английском, так генераторы понимают точнее, и в них уже есть размеры, цвета и мебель именно из этого проекта.</p>
+  </div>
+  <div class="cols" style="margin-top:14px">${PROMPTS.map((p,i)=>`<div class="card"><h3>${p[0]}</h3><textarea id="pr-${i}" readonly style="min-height:150px">${esc(p[1])}</textarea><div class="row"><button class="btn" data-copy="${i}">Скопировать</button><span class="small muted" id="prm-${i}"></span></div></div>`).join('')}</div>
+  <h3 class="room-h" style="margin-top:26px">Подборка материалов и вещей</h3>
+  <p class="note">Ссылки найдены поиском в ноябре 2026 года. Цены и наличие меняются, поэтому перед покупкой проверьте карточку товара.</p>
+  <div class="tbl"><table><thead><tr><th>Что</th><th>Что искать</th><th>Где</th></tr></thead><tbody>
+  ${SHOP.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2].length?r[2].map(l=>`<a href="${l[1]}" target="_blank" rel="noopener">${l[0]}</a>`).join('<br>'):'<span class="muted">мебельный цех или салон</span>'}</td></tr>`).join('')}
+  </tbody></table></div>`;
+  $('#tab-shop').querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{const i=b.dataset.copy, t=$('#pr-'+i); try{await navigator.clipboard.writeText(t.value);$('#prm-'+i).textContent='Скопировано'}catch(e){t.select();$('#prm-'+i).textContent='Текст выделен, нажмите Ctrl+C'}});
+}
+
 /* ===================== TABS ===================== */
 let activeTab='plan';
 $('#tabs').addEventListener('click',e=>{
   const b=e.target.closest('[data-tab]'); if(!b) return;
   activeTab=b.dataset.tab;
   for(const x of document.querySelectorAll('#tabs [data-tab]')) x.setAttribute('aria-selected',x===b);
-  for(const t of ['plan','v3d','elec','furn','concept']) $('#tab-'+t).hidden=t!==activeTab;
+  for(const t of ['plan','v3d','elec','furn','concept','shop']) $('#tab-'+t).hidden=t!==activeTab;
   if(activeTab==='elec') renderElec();
   if(activeTab==='furn') renderFurn();
   if(activeTab==='v3d') init3D();
   try{localStorage.setItem(KEY+'-tab',activeTab)}catch(e){}
 });
 
-function renderAll(){renderBathMode();renderFacts();renderLayers();renderPlan();renderEditor();renderConcept();if(activeTab==='elec')renderElec();if(activeTab==='furn')renderFurn()}
+function renderAll(){renderShop();renderBathMode();renderFacts();renderLayers();renderPlan();renderEditor();renderConcept();if(activeTab==='elec')renderElec();if(activeTab==='furn')renderFurn()}
 renderAll();
 try{const t=localStorage.getItem(KEY+'-tab'); if(t&&t!=='plan'){const b=document.querySelector(`#tabs [data-tab="${t}"]`); if(b) b.click()}}catch(e){}
 
@@ -981,7 +1129,14 @@ let T=null; // {THREE, renderer, scene, camera, controls, group}
 let cutWalls=true, v3elec=false;
 $('#cut-walls').onclick=e=>{cutWalls=!cutWalls;e.currentTarget.setAttribute('aria-pressed',cutWalls);build3D()};
 $('#v3-elec').onclick=e=>{v3elec=!v3elec;e.currentTarget.setAttribute('aria-pressed',v3elec);build3D()};
-$('#v3-reset').onclick=()=>{if(!T)return;T.camera.position.set(5.2,13,4.2);T.controls.target.set(5.2,0,3.3);T.controls.update()};
+$('#v3-reset').onclick=()=>{if(!T)return;T.camera.fov=42;T.camera.updateProjectionMatrix();T.camera.position.set(5.2,13,4.2);T.controls.target.set(5.2,0,3.3);T.controls.update()};
+let evening=false;
+$('#v3-eve').onclick=e=>{evening=!evening;e.currentTarget.setAttribute('aria-pressed',evening);build3D()};
+const VIEWS=[['Гостиная',[4.75,1.5,3.95],[4.2,1.05,0.9]],['Спальня',[2.55,1.5,4.75],[0.6,0.85,2.1]],['Кухня',[7.45,1.5,4.15],[7.3,0.95,0.6]],['Прихожая',[8.05,1.55,6.45],[3.6,1.15,4.85]],['Санузел',[8.45,1.55,5.05],[10.2,0.9,4.4]]];
+$('#v3-views').innerHTML=VIEWS.map((v,i)=>`<button class="btn" data-view="${i}">${v[0]}</button>`).join('');
+$('#v3-views').addEventListener('click',e=>{const b=e.target.closest('[data-view]'); if(!b||!T) return; const v=VIEWS[+b.dataset.view];
+  if(cutWalls){cutWalls=false;$('#cut-walls').setAttribute('aria-pressed','false')} build3D();
+  T.camera.fov=68;T.camera.updateProjectionMatrix();T.camera.position.set(...v[1]);T.controls.target.set(...v[2]);T.controls.update()});
 async function init3D(){
   if(T){build3D();resize3D();return}
   const status=$('#v3-status');
@@ -999,13 +1154,13 @@ async function init3D(){
   camera.position.set(5.6,8.5,11.5);
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.target.set(5.2,0.4,3.3); controls.enableDamping=true; controls.maxPolarAngle=Math.PI*0.495; controls.minDistance=1; controls.maxDistance=30;
-  scene.add(new THREE.HemisphereLight(0xfff4e6,0xb8a389,1.1));
+  const hemi=new THREE.HemisphereLight(0xfff4e6,0xb8a389,1.1); scene.add(hemi);
   const sun=new THREE.DirectionalLight(0xffeedd,2.0); sun.position.set(2.5,9,-7); sun.castShadow=true;
   sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:0.5,far:30}); sun.shadow.bias=-0.0005;
   sun.target.position.set(5,0,3.5); scene.add(sun,sun.target);
   const fill=new THREE.DirectionalLight(0xfff8ef,0.5); fill.position.set(10,6,10); scene.add(fill);
   const group=new THREE.Group(); scene.add(group);
-  T={THREE,renderer,scene,camera,controls,group,mats:{},tex:{}};
+  T={THREE,renderer,scene,camera,controls,group,mats:{},tex:{},hemi,sun,fill};
   new ResizeObserver(resize3D).observe(host);
   status.textContent='';
   build3D(); resize3D();
@@ -1027,6 +1182,8 @@ function build3D(){
   scene.background=new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--v3bg').trim()||'#EFE9E0');
   for(const ch of [...group.children]){group.remove(ch); ch.geometry&&ch.geometry.dispose()}
   const H=state.ceiling, WH=cutWalls?Math.min(H,120):H;
+  T.hemi.intensity=evening?0.12:1.1; T.sun.intensity=evening?0.04:2.0; T.fill.intensity=evening?0.03:0.5;
+  if(evening) scene.background=new THREE.Color('#1B1A22');
   const box=(x,y,w,d,z,h,m,cast=true)=>{ if(w<=0||d<=0||h<=0) return null;
     const me=new THREE.Mesh(new THREE.BoxGeometry(w/100,h/100,d/100),m); me.position.set((x+w/2)/100,(z+h/2)/100,(y+d/2)/100);
     me.castShadow=cast; me.receiveShadow=true; group.add(me); return me; };
@@ -1095,13 +1252,29 @@ function build3D(){
       case 'credenza':{ box(i.x,i.y,i.w,i.d,16,h-16,m); for(const [dx,dy] of [[4,4],[i.w-7,4],[4,i.d-7],[i.w-7,i.d-7]]) box(i.x+dx,i.y+dy,3,3,0,16,mat('#A9ACAE',{metalness:0.5,roughness:0.45})); break;}
       case 'speaker':{ box(i.x+i.w/2-2,i.y+i.d/2-2,4,4,0,68,mat('#A9ACAE',{metalness:0.5,roughness:0.45})); box(i.x,i.y,i.w,i.d,68,h-68,m); break;}
       case 'bench':{ box(i.x,i.y,i.w,i.d,0,40,mat(MATS.paint.c)); box(i.x+1,i.y+1,i.w-2,i.d-2,40,8,m); if(i.back){const b=back(i,10); box(b.x,b.y,b.w,b.d,48,h-48,mat((MATS[i.acc]||MATS.linen).c))} break;}
+      case 'art':{ const t=canvasTex('art'+(i.seed||1),256,(g,S)=>{let sd=(i.seed||1)*9301;const rnd=()=>{sd=(sd*9301+49297)%233280;return sd/233280};const pal=['#EFE7DB','#A3BCCD','#7A2433','#1F5C4E','#C9B79C','#2E3A4A','#E8D9C0'];g.fillStyle=pal[Math.floor(rnd()*2)];g.fillRect(0,0,S,S);for(let q=0;q<5;q++){g.fillStyle=pal[Math.floor(rnd()*pal.length)];g.globalAlpha=0.85;g.beginPath();if(rnd()<0.5)g.arc(rnd()*S,rnd()*S,20+rnd()*70,0,Math.PI*2);else g.rect(rnd()*S*0.7,rnd()*S*0.7,40+rnd()*110,30+rnd()*90);g.fill()}g.globalAlpha=1;g.strokeStyle='#5A3D27';g.lineWidth=14;g.strokeRect(0,0,S,S)});
+        box(i.x,i.y,i.w,i.d,z,h,new THREE.MeshStandardMaterial({map:t,roughness:0.8}),false); break;}
       case 'radiator': box(i.x,i.y,i.w,i.d,12,h,mat('#F3F1ED',{roughness:0.4})); break;
       default: box(i.x,i.y,i.w,i.d,z,h,m);
     }
   }
-  // pendant lamp over the kitchen table + electrics
-  const tbl=state.items.find(i=>i.room==='kit'&&i.kind==='table');
-  if(tbl&&!cutWalls){box(tbl.x+tbl.w/2-0.5,tbl.y+tbl.d/2-0.5,1,1,175,WH-175,mat('#A9ACAE',{metalness:0.5,roughness:0.45}),false); const sh=new THREE.Mesh(new THREE.SphereGeometry(0.16,24,16),mat('#F7F2E8',{emissive:'#FFE6BF',emissiveIntensity:0.7})); sh.position.set((tbl.x+tbl.w/2)/100,1.6+0.17,(tbl.y+tbl.d/2)/100); group.add(sh)}
+  // ceilings (visible only from inside)
+  if(!cutWalls) for(const r of ROOMS){const sh=new THREE.Shape(r.pts.map(p=>new THREE.Vector2(p[0]/100,p[1]/100)));const geo=new THREE.ShapeGeometry(sh);geo.rotateX(Math.PI/2);geo.translate(0,H/100,0);const me=new THREE.Mesh(geo,mat('#F5F1EA',{roughness:1,emissive:'#8F877B',emissiveIntensity:evening?0.04:0.6}));group.add(me)}
+  // light fixtures
+  const glow=(c,k)=>mat('#FFF4E2',{emissive:c,emissiveIntensity:evening?k:0.25});
+  const pl=(x,y,z,int,dist)=>{if(!evening)return;const L=new THREE.PointLight(0xffc68a,int,dist,2);L.position.set(x/100,z/100,y/100);group.add(L)};
+  if(state.layers.light) for(const l of state.lights){
+    const top=H;
+    if(l.kind==='TRACK'){ if(cutWalls) continue; box(l.x,l.y,Math.max(l.w,4),Math.max(l.d,4),top-3,3,mat('#D9D4CC',{roughness:0.5}),false);
+      const len=Math.max(l.w,l.d), hz=l.w>=l.d, n=Math.max(2,Math.round(len/90)); for(let q=0;q<n;q++){const t=(q+0.5)*len/n, px=hz?l.x+t:l.x+l.w/2, py=hz?l.y+l.d/2:l.y+t; box(px-3,py-3,6,6,top-14,11,mat('#ECE8E1',{roughness:0.4}),false); if(q===Math.floor(n/2)) pl(px,py,top-20,4,5)} }
+    else if(l.kind==='STRIP'){ if(l.h>WH) continue; box(l.x,l.y,Math.max(l.w,2),Math.max(l.d,2),l.h-1,2,glow('#FFC27A',2.5),false); const cx=l.x+l.w/2, cy=l.y+l.d/2; pl(cx,cy,l.h,1.6,2.5) }
+    else if(l.kind==='SPOT'){ if(cutWalls) continue; const me=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.01,16),glow('#FFD9A8',2)); me.position.set(l.x/100,top/100-0.006,l.y/100); group.add(me); pl(l.x,l.y,top-15,2.5,4) }
+    else if(l.kind==='PEND'){ const r=(l.r||12); if(!cutWalls) box(l.x-0.4,l.y-0.4,0.8,0.8,l.h+r,top-l.h-r,mat('#A9ACAE',{metalness:0.5,roughness:0.45}),false);
+      if(l.h<=WH){const me=new THREE.Mesh(new THREE.SphereGeometry(r/100,28,18),glow('#FFE2B8',1.6)); me.position.set(l.x/100,l.h/100,l.y/100); group.add(me); pl(l.x,l.y,l.h-5,3.2,4)} }
+    else if(l.kind==='FLOOR'){ box(l.x-1,l.y-1,2,2,0,l.h-25,mat('#A9ACAE',{metalness:0.5,roughness:0.45}),false); if(l.h<=WH+40){const me=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.21,0.28,28,1,true),mat('#EFE6D6',{side:THREE.DoubleSide,emissive:'#FFCF94',emissiveIntensity:evening?0.9:0.1})); me.position.set(l.x/100,(l.h-12)/100,l.y/100); group.add(me); pl(l.x,l.y,l.h-15,3,4)} }
+    else if(l.kind==='LAMP'){ const me=new THREE.Mesh(new THREE.SphereGeometry(0.08,20,14),glow('#FFE2B8',1.4)); me.position.set(l.x/100,(l.h-5)/100,l.y/100); group.add(me); pl(l.x,l.y,l.h,1.5,2.5) }
+    else if(l.kind==='SCON'){ if(l.h>WH) continue; box(l.x-1,l.y-12,4,24,l.h-2,4,glow('#FFD9A8',1.4),false); pl(l.x+15,l.y,l.h-10,1.2,2) }
+  }
   if(v3elec) for(const e of state.elec){ if(e.h>WH) continue; const s=new THREE.Mesh(new THREE.SphereGeometry(0.045,12,8),mat(EK[e.kind].c,{roughness:0.4,emissive:EK[e.kind].c,emissiveIntensity:0.3})); s.position.set(e.x/100,e.h/100,e.y/100); group.add(s)}
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(T)build3D()});
